@@ -1,0 +1,56 @@
+{
+  "name": "helix-server-workspace",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test --filter=!@helixid/example-e2e-consent-demo",
+    "test:all": "pnpm test && pnpm test:live",
+    "test:non-live": "turbo run test:non-live --filter=!@helixid/example-e2e-consent-demo",
+    "test:live": "pnpm --filter @helixid/api test:live",
+    "test:coverage": "pnpm --filter @helixid/api test:coverage",
+    "test:e2e": "turbo run test --filter=@helixid/e2e",
+    "typecheck": "turbo run typecheck --filter=!@helixid/example-e2e-consent-demo",
+    "format": "prettier --write \"**/*.{ts,json,md}\" --ignore-path .gitignore",
+    "generate:golden-vectors": "pnpm --filter @helixid/api exec tsx ../scripts/generate-golden-vectors.ts",
+    "setup": "pnpm --filter @helixid/api exec tsx ../scripts/setup.ts",
+    "setup:hedera": "pnpm --filter @helixid/api exec tsx ../scripts/setup-hedera.ts",
+    "example:verify-vp": "pnpm --filter @helixid/api exec tsx ../examples/verify-vp.ts",
+    "example:verify-vp:sdk": "pnpm --filter @helixid/api exec tsx ../examples/verify-vp-sdk.ts",
+    "example:verify-vp:session-bridge": "pnpm --filter @helixid/api exec tsx ../examples/verify-vp-session-bridge.ts",
+    "example:scope-check": "pnpm --filter @helixid/api exec tsx ../examples/scope-check.ts",
+    "example:self-verify": "pnpm --filter @helixid/api exec tsx ../examples/self-verify.ts",
+    "example:revocation-check": "pnpm --filter @helixid/api exec tsx ../examples/revocation-check.ts",
+    "example:verifier:session": "pnpm --filter @helixid/api exec tsx ../examples/verifier-session-cycle.ts",
+    "example:verifier:vp-cache": "pnpm --filter @helixid/api exec tsx ../examples/verifier-vp-cache-cycle.ts",
+    "example:middleware:setup": "pnpm --filter @helixid/example-framework-middleware run setup",
+    "example:middleware:langchain": "pnpm --filter @helixid/example-framework-middleware run langchain",
+    "example:middleware:mcp": "pnpm --filter @helixid/example-framework-middleware run mcp",
+    "dev": "turbo run dev",
+    "dev:api": "turbo run dev --filter=@helixid/api"
+  },
+  "packageManager": "pnpm@9.15.2",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "prisma": {
+    "schema": "helix-api/prisma/schema.prisma"
+  },
+  "pnpm": {
+    "overrides": {
+      "fast-uri": "3.1.2",
+      "protobufjs": "8.0.2"
+    }
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "dotenv": "^17.4.2",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.0",
+    "turbo": "^2.3.0",
+    "typescript": "^6.0.3",
+    "vite": "^7.0.0"
+  }
+}
