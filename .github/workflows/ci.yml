@@ -44,6 +44,8 @@ jobs:
       - name: Configure git for private cross-repo dependency
         run: |
           git config --global url."https://${{ secrets.HELIXID_CROSS_REPO_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${{ secrets.HELIXID_CROSS_REPO_TOKEN }}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.HELIXID_CROSS_REPO_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
 
       - uses: pnpm/action-setup@v4
         with:
