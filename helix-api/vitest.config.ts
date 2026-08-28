@@ -7,6 +7,23 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    // @helixid/did-hedera is consumed as a pnpm git+path dependency pinned
+    // to a commit (github:helixid/helix-sdk-js#path:did-hedera). pnpm's
+    // virtual store therefore names that package's real directory with a
+    // literal '#<sha>' in it. Vite's default module resolution follows
+    // symlinks to that real path and then treats the module specifier like
+    // a URL, so everything from '#' onward is parsed as a fragment and
+    // dropped -- "Cannot find module '.../#<sha>.../dist/index.js'" even
+    // though the file exists. preserveSymlinks keeps resolution on the
+    // clean top-level node_modules/@helixid/did-hedera symlink (no '#'),
+    // which avoids the bug entirely. Confirmed: a plain Node import of the
+    // same package (outside Vite/Vitest) already resolved fine, and both
+    // static and dynamic imports of this package failed identically before
+    // this fix -- purely a Vite path-resolution quirk with this one
+    // git+path dependency, not a real issue with the package itself.
+    preserveSymlinks: true,
+  },
   test: {
     setupFiles: ['./tests/setup.ts'],
     fileParallelism: false,
