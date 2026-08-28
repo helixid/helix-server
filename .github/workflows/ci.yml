@@ -41,11 +41,18 @@ jobs:
       # stored as a repo or org secret. If helix-sdk-js is made public,
       # or once these packages are published to a registry, this step
       # (and the secret) can be removed.
+      # NOTE: url.<base>.insteadOf is a multi-valued git config key, so each
+      # rewrite MUST be added with `--add` — plain `git config <key> <val>`
+      # replaces the single existing value instead of appending, which
+      # silently dropped the first two rewrites here in an earlier version
+      # of this step (only the last insteadOf survived, so SSH-form
+      # dependency URLs still went out over real SSH and failed with
+      # "cannot run ssh: No such file or directory" in Install dependencies).
       - name: Configure git for private cross-repo dependency
         run: |
-          git config --global url."https://${{ secrets.HELIXID_CROSS_REPO_TOKEN }}@github.com/".insteadOf "https://github.com/"
-          git config --global url."https://${{ secrets.HELIXID_CROSS_REPO_TOKEN }}@github.com/".insteadOf "git@github.com:"
-          git config --global url."https://${{ secrets.HELIXID_CROSS_REPO_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global --add url."https://${{ secrets.HELIXID_CROSS_REPO_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global --add url."https://${{ secrets.HELIXID_CROSS_REPO_TOKEN }}@github.com/".insteadOf "git@github.com:"
+          git config --global --add url."https://${{ secrets.HELIXID_CROSS_REPO_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
 
       - uses: pnpm/action-setup@v4
         with:
