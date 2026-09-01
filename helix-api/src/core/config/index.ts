@@ -35,7 +35,7 @@ export const ConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   API_BASE_URL: z.string().url().default(DEFAULT_HOSTED_API_BASE_URL),
-  HELIX_STORAGE_ADAPTER: z.enum(['sqlite', 'postgres']).default('sqlite'),
+  HELIX_STORAGE_ADAPTER: z.enum(['sqlite', 'postgres']).default('postgres'),
   DATABASE_URL: z.string().min(1).optional(),
   HELIX_SQLITE_PATH: z.string().min(1).default('./data/helixid.sqlite'),
 

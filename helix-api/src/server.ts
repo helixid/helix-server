@@ -56,7 +56,7 @@ import { SqliteStore } from './storage/sqlite.js';
 const config = loadConfigFromEnv();
 const storageAdapter =
   (config as unknown as { HELIX_STORAGE_ADAPTER?: 'sqlite' | 'postgres' }).HELIX_STORAGE_ADAPTER ??
-  'sqlite';
+  'postgres';
 const cacheAdapter =
   (config as unknown as { HELIX_CACHE_ADAPTER?: 'memory' | 'redis' }).HELIX_CACHE_ADAPTER ??
   'memory';

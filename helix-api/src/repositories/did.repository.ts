@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import type { SqliteStore } from '../storage/sqlite.js';
-import { sqliteLiteral } from '../storage/sqlite.js';
+import type { StorageDriverKind } from '../storage/driver-registry.js';
+import { createDidStorageDriver, type DidStorageDriver } from './drivers/did.drivers.js';
 
 export interface DIDRecord {
   id: string;
@@ -35,168 +36,51 @@ interface DIDUpdateParams {
   payload: unknown;
 }
 
-type PrismaLike = PrismaClient & {
-  did: {
-    create(args: unknown): Promise<DIDRecord>;
-    findUnique(args: unknown): Promise<DIDRecord | null>;
-    findFirst(args: unknown): Promise<DIDRecord | null>;
-    update(args: unknown): Promise<DIDRecord>;
-  };
-  didUpdate: {
-    create(args: unknown): Promise<unknown>;
-  };
-  $transaction(args: unknown): Promise<unknown>;
-};
-
-type SqliteDidRow = {
-  id: string;
-  subject_type: string;
-  controller: string;
-  public_key: string;
-  public_key_multibase: string | null;
-  hedera_topic_id: string | null;
-  hedera_sequence_number: number | null;
-  hedera_transaction_id: string;
-  did_document: string;
-  deactivated_at: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-};
-
-function fromSqliteRow(row: SqliteDidRow | undefined): DIDRecord | null {
-  if (!row) return null;
-  const base: DIDRecord = {
-    id: row.id,
-    subjectType: row.subject_type,
-    controller: row.controller,
-    publicKey: row.public_key,
-    publicKeyMultibase: row.public_key_multibase,
-    hederaTopicId: row.hedera_topic_id,
-    hederaSequenceNumber: row.hedera_sequence_number,
-    hederaTransactionId: row.hedera_transaction_id,
-    didDocument: JSON.parse(row.did_document),
-    deactivatedAt: row.deactivated_at ? new Date(row.deactivated_at) : null,
-  };
-  if (row.created_at) base.createdAt = new Date(row.created_at);
-  if (row.updated_at) base.updatedAt = new Date(row.updated_at);
-  return base;
-}
-
+/**
+ * DidRepository is now a thin delegator over a DidStorageDriver — see
+ * storage/driver-registry.ts for the pattern this follows and
+ * repositories/drivers/did.drivers.ts for the postgres/sqlite/in-memory
+ * driver implementations. There is no per-backend branching left in this
+ * class; it all lives in createDidStorageDriver() and the driver classes
+ * themselves.
+ *
+ * The (prisma?, sqlite?) constructor signature is unchanged on purpose —
+ * it's relied on across the existing test suite (unit, integration,
+ * security) and server.ts. Backend selection is inferred from which
+ * argument is present, exactly as it was before this refactor: prisma
+ * present -> postgres, sqlite present (and no prisma) -> sqlite, neither
+ * -> in-memory. Adding a backend that can't be inferred this way (e.g. a
+ * hypothetical future case where more than one non-prisma backend needs to
+ * coexist) would mean adding one more optional constructor parameter and
+ * one more branch in resolveDriverKind() — additive and backward
+ * compatible, not a rewrite.
+ */
 export class DidRepository {
-  private readonly dids = new Map<string, DIDRecord>();
+  private readonly driver: DidStorageDriver;
 
   constructor(
     private readonly prisma?: PrismaClient,
     private readonly sqlite?: SqliteStore,
-  ) {}
+  ) {
+    this.driver = createDidStorageDriver(this.resolveDriverKind(), { prisma, sqlite });
+  }
 
-  private get db(): PrismaLike {
-    return this.prisma as PrismaLike;
+  private resolveDriverKind(): StorageDriverKind {
+    if (this.prisma) return 'postgres';
+    if (this.sqlite) return 'sqlite';
+    return 'memory';
   }
 
   async createDid(data: CreateDIDRecordParams): Promise<DIDRecord> {
-    if (this.prisma) {
-      return this.db.did.create({
-        data: {
-          ...data,
-          publicKeyMultibase: data.publicKeyMultibase ?? null,
-        },
-      });
-    }
-
-    if (this.sqlite) {
-      const now = new Date();
-      this.sqlite.execute(`
-        INSERT INTO dids (
-          id, subject_type, controller, public_key, public_key_multibase,
-          hedera_topic_id, hedera_sequence_number, hedera_transaction_id,
-          did_document, deactivated_at, created_at, updated_at
-        ) VALUES (
-          ${sqliteLiteral(data.id)},
-          ${sqliteLiteral(data.subjectType)},
-          ${sqliteLiteral(data.controller)},
-          ${sqliteLiteral(data.publicKey)},
-          ${sqliteLiteral(data.publicKeyMultibase ?? null)},
-          ${sqliteLiteral(data.hederaTopicId ?? null)},
-          ${sqliteLiteral(data.hederaSequenceNumber ?? null)},
-          ${sqliteLiteral(data.hederaTransactionId)},
-          ${sqliteLiteral(JSON.stringify(data.didDocument))},
-          NULL,
-          ${sqliteLiteral(now)},
-          ${sqliteLiteral(now)}
-        )
-      `);
-      return {
-        id: data.id,
-        subjectType: data.subjectType,
-        controller: data.controller,
-        publicKey: data.publicKey,
-        publicKeyMultibase: data.publicKeyMultibase ?? null,
-        hederaTopicId: data.hederaTopicId ?? null,
-        hederaSequenceNumber: data.hederaSequenceNumber ?? null,
-        hederaTransactionId: data.hederaTransactionId,
-        didDocument: data.didDocument,
-        deactivatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      };
-    }
-
-    const now = new Date();
-    const record: DIDRecord = {
-      id: data.id,
-      subjectType: data.subjectType,
-      controller: data.controller,
-      publicKey: data.publicKey,
-      publicKeyMultibase: data.publicKeyMultibase ?? null,
-      hederaTopicId: data.hederaTopicId ?? null,
-      hederaSequenceNumber: data.hederaSequenceNumber ?? null,
-      hederaTransactionId: data.hederaTransactionId,
-      didDocument: data.didDocument,
-      deactivatedAt: null,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.dids.set(record.id, record);
-    return record;
+    return this.driver.createDid(data);
   }
 
   async findDidById(id: string): Promise<DIDRecord | null> {
-    if (this.prisma) {
-      return this.db.did.findUnique({
-        where: { id },
-        include: { updates: true },
-      });
-    }
-
-    if (this.sqlite) {
-      const rows = this.sqlite.query<SqliteDidRow>(`
-        SELECT * FROM dids WHERE id = ${sqliteLiteral(id)} LIMIT 1
-      `);
-      return fromSqliteRow(rows[0]);
-    }
-
-    return this.dids.get(id) ?? null;
+    return this.driver.findDidById(id);
   }
 
   async findDidByPublicKey(publicKey: string): Promise<DIDRecord | null> {
-    if (this.prisma) {
-      return this.db.did.findFirst({
-        where: { publicKey },
-      });
-    }
-
-    if (this.sqlite) {
-      const rows = this.sqlite.query<SqliteDidRow>(`
-        SELECT * FROM dids WHERE public_key = ${sqliteLiteral(publicKey)} LIMIT 1
-      `);
-      return fromSqliteRow(rows[0]);
-    }
-
-    for (const did of this.dids.values()) {
-      if (did.publicKey === publicKey) return did;
-    }
-    return null;
+    return this.driver.findDidByPublicKey(publicKey);
   }
 
   async updateDidDocument(
@@ -204,83 +88,11 @@ export class DidRepository {
     didDocument: unknown,
     update: DIDUpdateParams,
   ): Promise<unknown> {
-    if (this.prisma) {
-      return this.db.$transaction([
-        this.db.did.update({
-          where: { id },
-          data: { didDocument },
-        }),
-        this.db.didUpdate.create({
-          data: {
-            ...update,
-            did: { connect: { id } },
-          },
-        }),
-      ]);
-    }
-
-    if (this.sqlite) {
-      const now = new Date();
-      this.sqlite.execute(`
-        UPDATE dids
-        SET did_document = ${sqliteLiteral(JSON.stringify(didDocument))},
-            updated_at = ${sqliteLiteral(now)}
-        WHERE id = ${sqliteLiteral(id)}
-      `);
-      this.sqlite.execute(`
-        INSERT INTO did_updates (did_id, update_type, hedera_transaction_id, payload_json, created_at)
-        VALUES (
-          ${sqliteLiteral(id)},
-          ${sqliteLiteral(update.updateType)},
-          ${sqliteLiteral(update.hederaTransactionId)},
-          ${sqliteLiteral(JSON.stringify(update.payload))},
-          ${sqliteLiteral(now)}
-        )
-      `);
-      const record = await this.findDidById(id);
-      return [record, { ...update, didId: id }];
-    }
-
-    const existing = this.dids.get(id);
-    if (!existing) throw new Error('DID not found');
-    const next: DIDRecord = {
-      ...existing,
-      didDocument,
-      updatedAt: new Date(),
-    };
-    this.dids.set(id, next);
-    return [next, { ...update, didId: id }];
+    return this.driver.updateDidDocument(id, didDocument, update);
   }
 
   async deactivateDid(id: string, deactivatedAt: Date): Promise<DIDRecord> {
-    if (this.prisma) {
-      return this.db.did.update({
-        where: { id },
-        data: { deactivatedAt },
-      });
-    }
-
-    if (this.sqlite) {
-      this.sqlite.execute(`
-        UPDATE dids
-        SET deactivated_at = ${sqliteLiteral(deactivatedAt)},
-            updated_at = ${sqliteLiteral(new Date())}
-        WHERE id = ${sqliteLiteral(id)}
-      `);
-      const updated = await this.findDidById(id);
-      if (!updated) throw new Error('DID not found');
-      return updated;
-    }
-
-    const existing = this.dids.get(id);
-    if (!existing) throw new Error('DID not found');
-    const next: DIDRecord = {
-      ...existing,
-      deactivatedAt,
-      updatedAt: new Date(),
-    };
-    this.dids.set(id, next);
-    return next;
+    return this.driver.deactivateDid(id, deactivatedAt);
   }
 
   // Back-compat aliases for older B3/B4 scaffolding.
@@ -293,19 +105,7 @@ export class DidRepository {
   }
 
   async findByPublicKeyMultibase(publicKeyMultibase: string): Promise<DIDRecord | null> {
-    if (this.prisma) {
-      return this.db.did.findFirst({ where: { publicKeyMultibase } });
-    }
-    if (this.sqlite) {
-      const rows = this.sqlite.query<SqliteDidRow>(`
-        SELECT * FROM dids WHERE public_key_multibase = ${sqliteLiteral(publicKeyMultibase)} LIMIT 1
-      `);
-      return fromSqliteRow(rows[0]);
-    }
-    for (const did of this.dids.values()) {
-      if (did.publicKeyMultibase === publicKeyMultibase) return did;
-    }
-    return null;
+    return this.driver.findByPublicKeyMultibase(publicKeyMultibase);
   }
 }
 
