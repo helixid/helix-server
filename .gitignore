@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.venv/
+__pycache__/
+*.egg-info/
+
+# Build output
+dist/
+build/
+coverage/
+prisma/generated/
+
+# Runtime and cache
+.turbo/
+tmp/
+*.log
+
+# Local environment files
+.env
+.env.local
+.env.production
+.env.test
+*.env
+
+# OS and editor files
+.DS_Store
+
+node-compile-cache/
+
+# Local runtime state -- never belongs in source control.
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+wallet.enc
