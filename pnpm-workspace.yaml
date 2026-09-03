@@ -1,5 +1,5 @@
 packages:
-  - 'helix-api'
+  - '.'
   - 'examples/*'
   - 'examples'
   - 'e2e'
@@ -15,5 +15,4 @@ allowBuilds:
   "@helixid/sdk-js@git+https://github.com/helixid/helix-sdk-js.git#9c59fb2664bf5e2a712122e4d166f2afbc86d147&path:helix-sdk-js": true
   "@helixid/did-hedera@git+https://github.com/helixid/helix-sdk-js.git#9c59fb2664bf5e2a712122e4d166f2afbc86d147&path:did-hedera": true
   "@helixid/widget@git+https://github.com/helixid/helix-sdk-js.git#9c59fb2664bf5e2a712122e4d166f2afbc86d147&path:widget": true
-  "@helixid/mcp@git+https://github.com/helixid/helix-sdk-js.git#9c59fb2664bf5e2a712122e4d166f2afbc86d147&path:mcp": true
   esbuild: true

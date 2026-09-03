@@ -67,10 +67,10 @@ jobs:
         run: corepack enable && pnpm install --frozen-lockfile
 
       - name: Build
-        run: pnpm exec turbo run build
+        run: pnpm run workspace:build
 
       - name: Prepare test database
-        run: pnpm --filter @helixid/api db:test:prepare
+        run: pnpm run db:test:prepare
         env:
           DATABASE_URL: postgresql://helixid_test:helixid_test@localhost:5433/helixid_test
           NODE_ENV: test
@@ -87,7 +87,7 @@ jobs:
       # updated this example. Pre-existing breakage, carried over from the
       # monorepo split, tracked as a follow-up rather than papered over.
       - name: Test
-        run: pnpm exec turbo run test:non-live --filter=!@helixid/example-e2e-consent-demo
+        run: pnpm run workspace:test:non-live
         env:
           DATABASE_URL: postgresql://helixid_test:helixid_test@localhost:5433/helixid_test
           NODE_ENV: test
@@ -108,7 +108,7 @@ jobs:
       # see DIDService.createDID — so unlike the step above, no Hedera
       # network access or secrets are needed at all.
       - name: Live tests (Postgres)
-        run: pnpm --filter @helixid/api run test:live
+        run: pnpm run test:live
         env:
           DATABASE_URL: postgresql://helixid_test:helixid_test@localhost:5433/helixid_test
           NODE_ENV: test
@@ -118,7 +118,7 @@ jobs:
           AUDIT_LOG_DESTINATION: stdout
 
       - name: Live tests (SQLite)
-        run: pnpm --filter @helixid/api run test:live
+        run: pnpm run test:live
         env:
           LIVE_STORAGE_ADAPTER: sqlite
           NODE_ENV: test
@@ -128,7 +128,7 @@ jobs:
           AUDIT_LOG_DESTINATION: stdout
 
       - name: Live tests (did:web)
-        run: pnpm --filter @helixid/api run test:live
+        run: pnpm run test:live
         env:
           LIVE_STORAGE_ADAPTER: sqlite
           LIVE_DID_METHOD: web

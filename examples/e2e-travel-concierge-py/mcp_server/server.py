@@ -42,8 +42,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from config import SCOPES, TARGET_SERVICE, TOOLS, env
-from helix_mcp.middleware import helixid_mcp_middleware
-from helix_mcp.types import MCPMiddlewareOptions
+from helix_mcp_middleware.middleware import helixid_mcp_middleware
+from helix_mcp_middleware.types import MCPMiddlewareOptions
 from helix_sdk import verify_vp
 from helix_sdk.client import HelixClient
 from helix_sdk.errors import HelixError

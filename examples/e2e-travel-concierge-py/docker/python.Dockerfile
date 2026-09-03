@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # helix-sdk-py, editable install. The `mcp` extra pulls in the official MCP
 # SDK the mcp_server package uses for the wire protocol.
 COPY helix-sdk-py helix-sdk-py
-RUN pip install --no-cache-dir -e "./helix-sdk-py[cli,mcp]"
+RUN pip install --no-cache-dir -e "./helix-sdk-py[mcp-middleware]"
 
 # The demo itself.
 COPY helix-server/examples/e2e-travel-concierge-py helix-server/examples/e2e-travel-concierge-py

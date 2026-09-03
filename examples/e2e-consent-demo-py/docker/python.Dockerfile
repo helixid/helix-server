@@ -19,10 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /
 COPY helix-server/examples/e2e-consent-demo-py/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# helix-sdk-py, editable install (its own pyproject.toml declares the `cli`
-# extra this demo needs for status-list/issuer-ops helpers).
+# helix-sdk-py, editable install.
 COPY helix-sdk-py helix-sdk-py
-RUN pip install --no-cache-dir -e "./helix-sdk-py[cli]"
+RUN pip install --no-cache-dir -e "./helix-sdk-py[dev]"
 
 # @helixid/widget has no Python port -- its pre-built browser bundle is
 # static assets, vendored the same way the JS examples' node.Dockerfile

@@ -25,6 +25,14 @@ export default defineConfig({
     preserveSymlinks: true,
   },
   test: {
+    // Scoped to this package's own tests/ tree. Needed now that this
+    // config lives at the workspace root: vitest's default discovery glob
+    // is recursive, and examples/ and e2e/ are workspace siblings that
+    // sit *underneath* the root now -- each has its own test setup (or,
+    // for examples/e2e-consent-demo, known-broken tests already excluded
+    // from CI for unrelated reasons -- see docs/decisions.md) and must
+    // not be swept into this package's own test run.
+    include: ['tests/**/*.test.ts'],
     setupFiles: ['./tests/setup.ts'],
     fileParallelism: false,
     coverage: {

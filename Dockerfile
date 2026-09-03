@@ -1,15 +1,13 @@
-# helix-api production image.
+# helix-api production image. helix-api *is* this repo now (no more
+# nested helix-api/ subdirectory -- see docs/decisions.md for why), so this
+# builds the workspace root package directly.
 #
-# Ported from the pre-split monorepo's root Dockerfile. That version COPYed
-# in local helix-core/helix-sdk-js/packages/did-hedera workspace packages
-# that no longer live in this repo (they moved to the separate helix-sdk-js
-# repo when the monorepo was split; @helixid/core was retired and its logic
-# duplicated inline into helix-api's own src/core/). @helixid/did-hedera is
-# declared as a pnpm git dependency (github:helixid/helix-sdk-js#path:did-hedera,
-# see pnpm-workspace.yaml's allowBuilds), but that repo is currently *private*
-# -- this image has no git credentials for it, so a plain `pnpm install`
-# can't fetch it here (the same reason each example's node.Dockerfile
-# vendors its sibling packages instead of installing them from git).
+# @helixid/did-hedera is declared as a pnpm git dependency
+# (github:helixid/helix-sdk-js#path:did-hedera, see pnpm-workspace.yaml's
+# allowBuilds), but that repo is currently *private* -- this image has no
+# git credentials for it, so a plain `pnpm install` can't fetch it here
+# (the same reason each example's node.Dockerfile vendors its sibling
+# packages instead of installing them from git).
 #
 # TODO(helixid/helix-sdk-js visibility): once helix-sdk-js is public, delete
 # the vendoring below, restore `context: ../..` / `dockerfile: Dockerfile`
@@ -17,7 +15,7 @@
 # `pnpm install --filter @helixid/api`.
 #
 # Build context: the parent directory containing all four split repos.
-FROM node:24-alpine AS builder
+FROM node:24.15.0-alpine AS builder
 
 WORKDIR /app
 RUN corepack enable
@@ -25,7 +23,6 @@ RUN corepack enable
 RUN apk add --no-cache python3 make g++ git
 
 COPY helix-server/package.json helix-server/pnpm-lock.yaml helix-server/pnpm-workspace.yaml helix-server/tsconfig.base.json ./
-COPY helix-server/helix-api/package.json ./helix-api/
 # pnpm-workspace.yaml's globs (examples/*, examples, e2e) need a package.json
 # present for every matching directory or pnpm's workspace scan complains --
 # we don't need to build any of these for the api image, just satisfy it.
@@ -47,39 +44,47 @@ RUN for f in e2e/package.json examples/package.json examples/e2e-consent-demo/pa
 COPY helix-sdk-js/did-hedera/dist helix-sdk-js/did-hedera/dist
 COPY helix-sdk-js/did-hedera/package.json helix-sdk-js/did-hedera/package.json
 RUN node -e "const f = 'helix-sdk-js/did-hedera/package.json'; const j = require('./' + f); delete j.scripts; require('fs').writeFileSync(f, JSON.stringify(j, null, 2));" \
- && npm pkg set "dependencies.@helixid/did-hedera=file:../helix-sdk-js/did-hedera" --prefix helix-api \
- && npm pkg delete "devDependencies.@helixid/sdk-js" --prefix helix-api
+ && npm pkg set "dependencies.@helixid/did-hedera=file:/app/helix-sdk-js/did-hedera" \
+ && npm pkg delete "devDependencies.@helixid/sdk-js"
 
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --no-frozen-lockfile --filter @helixid/api
+    pnpm install --no-frozen-lockfile
 
-COPY helix-server/helix-api ./helix-api
-# The COPY above brings in the real (unpatched) helix-api/package.json,
-# clobbering the in-place edit from above -- re-apply it, since `pnpm deploy`
-# below re-resolves @helixid/api's dependency graph from package.json rather
-# than reusing the node_modules the earlier `pnpm install` already built.
-RUN npm pkg set "dependencies.@helixid/did-hedera=file:../helix-sdk-js/did-hedera" --prefix helix-api \
- && npm pkg delete "devDependencies.@helixid/sdk-js" --prefix helix-api
+COPY helix-server/src src
+COPY helix-server/tests tests
+COPY helix-server/prisma prisma
+COPY helix-server/tsconfig.json helix-server/tsconfig.build.json helix-server/vitest.config.ts helix-server/prisma.config.ts ./
+COPY helix-server/package.json ./
+# The COPY above brings back the real (unpatched) package.json, clobbering
+# the in-place edit from above -- re-apply it, since the build step below
+# reads package.json fresh rather than reusing the earlier in-memory patch.
+RUN npm pkg set "dependencies.@helixid/did-hedera=file:/app/helix-sdk-js/did-hedera" \
+ && npm pkg delete "devDependencies.@helixid/sdk-js"
 
-RUN pnpm --filter @helixid/api build
+RUN pnpm run build
 
-# Self-contained deployment: all deps resolved from the store, no workspace
-# symlinks (so the runner stage doesn't need the rest of the workspace).
-RUN pnpm --filter @helixid/api deploy --prod /app/deploy
+# `pnpm deploy` (isolate prod-only deps into a self-contained directory,
+# dropping workspace symlinks) is unreliable once the deployed package
+# *is* the workspace root itself: its --prod output still listed
+# devDependencies in package.json, and re-running `prisma generate`
+# against that output failed to resolve @prisma/client even though the
+# symlink was actually present -- some part of `pnpm deploy`'s dependency
+# re-resolution behaves differently for the root package than for a
+# nested one. Simpler and reliable: carry this /app checkout's own
+# node_modules forward as-is -- it already has a correctly generated
+# Prisma client (from the build step above) and every prod dependency
+# resolved, at the cost of also carrying devDependencies into the image
+# (no lean prod-only reinstall). Revisit if image size becomes a real
+# concern; correctness over leanness for now.
 
-# `pnpm deploy` re-resolves deps rather than copying node_modules, so it
-# drops the .prisma/client output `prisma generate` wrote during the build
-# step above. Regenerate it directly into the deploy output using the
-# still-present dev CLI (helix-api/node_modules is discarded once only
-# /app/deploy is copied into the runner stage).
-RUN cd /app/deploy && /app/helix-api/node_modules/.bin/prisma generate
-
-
-FROM node:24-alpine AS runner
+FROM node:24.15.0-alpine AS runner
 
 WORKDIR /app
-COPY --from=builder /app/deploy ./helix-api
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3000
 
-CMD ["node", "helix-api/dist/server.js"]
+CMD ["node", "dist/server.js"]

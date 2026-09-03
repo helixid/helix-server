@@ -13,7 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
     "@helixid/sdk-js": "file:../../../helix-sdk-js/helix-sdk-js",
-    "@helixid/mcp": "file:../../../helix-sdk-js/mcp",
+    "@helixid/mcp": "file:../../../helix-sdk-js/mcp-middleware",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "dotenv": "^17.4.2",
     "express": "^4.21.2",
