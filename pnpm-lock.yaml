@@ -26,8 +26,8 @@ importers:
         specifier: ^5.2.6
         version: 5.2.6
       '@helixid/core':
-        specifier: file:../helix-core
-        version: file:../helix-core(bn.js@5.2.5)(magicast@0.5.4)(prisma@7.10.0(@types/react@19.2.18)(better-sqlite3@12.11.1)(magicast@0.5.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))(typescript@5.9.3)
+        specifier: github:helixid/helix-core
+        version: https://codeload.github.com/helixid/helix-core/tar.gz/6ad43bd8adeb16b58527c2f67ca0db762dee2dc3(bn.js@5.2.5)(magicast@0.5.4)(prisma@7.10.0(@types/react@19.2.18)(better-sqlite3@12.11.1)(magicast@0.5.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))(typescript@5.9.3)
       '@helixid/did-hedera':
         specifier: github:helixid/helix-sdk-js#path:did-hedera
         version: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:did-hedera(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
@@ -776,8 +776,9 @@ packages:
   '@helixid/core@0.1.5':
     resolution: {integrity: sha512-mdqBzfe1katc0BbcWU0jKTWkSWxvizryknFQiiPEnSYI+xsbCa5SLLIAH0CUgdIH0C1EITnqCpzE1KfX/mcLvQ==}
 
-  '@helixid/core@file:../helix-core':
-    resolution: {directory: ../helix-core, type: directory}
+  '@helixid/core@https://codeload.github.com/helixid/helix-core/tar.gz/6ad43bd8adeb16b58527c2f67ca0db762dee2dc3':
+    resolution: {tarball: https://codeload.github.com/helixid/helix-core/tar.gz/6ad43bd8adeb16b58527c2f67ca0db762dee2dc3}
+    version: 0.1.0
     engines: {node: ^20.19.0 || >=22.12.0, pnpm: '>=9.0.0'}
 
   '@helixid/did-hedera@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06#path:did-hedera':
@@ -4622,7 +4623,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       zod: 3.25.76
 
-  '@helixid/core@file:../helix-core(bn.js@5.2.5)(magicast@0.5.4)(prisma@7.10.0(@types/react@19.2.18)(better-sqlite3@12.11.1)(magicast@0.5.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))(typescript@5.9.3)':
+  '@helixid/core@https://codeload.github.com/helixid/helix-core/tar.gz/6ad43bd8adeb16b58527c2f67ca0db762dee2dc3(bn.js@5.2.5)(magicast@0.5.4)(prisma@7.10.0(@types/react@19.2.18)(better-sqlite3@12.11.1)(magicast@0.5.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))(typescript@5.9.3)':
     dependencies:
       '@fastify/sensible': 6.0.5
       '@fastify/swagger': 9.8.1

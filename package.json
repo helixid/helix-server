@@ -49,7 +49,7 @@
     "@fastify/sensible": "^6.0.0",
     "@fastify/swagger": "^9.7.0",
     "@fastify/swagger-ui": "^5.2.6",
-    "@helixid/core": "file:../helix-core",
+    "@helixid/core": "github:helixid/helix-core",
     "@helixid/did-hedera": "github:helixid/helix-sdk-js#path:did-hedera",
     "@noble/curves": "^1.4.0",
     "@noble/ed25519": "^2.3.0",
