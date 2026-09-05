@@ -17,7 +17,7 @@ if (process.env.NODE_ENV !== 'test' || !isTestDatabase) {
 }
 
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
-const migrationsDir = join(rootDir, 'prisma', 'migrations');
+const migrationsDir = join(rootDir, 'prisma', 'schema', 'migrations');
 const pool = new Pool({ connectionString: databaseUrl });
 const client = await pool.connect();
 

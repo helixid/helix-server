@@ -10,8 +10,7 @@
 // to detect reuse of an already-revoked token (compromise signal).
 
 import type { PrismaClient } from '@prisma/client';
-import type { SqliteStore } from '../storage/sqlite.js';
-import type { StorageDriverKind } from '../storage/driver-registry.js';
+import type { SqliteStore, StorageDriverKind } from '@helixid/core';
 import {
   createRefreshTokenStorageDriver,
   type RefreshTokenStorageDriver,

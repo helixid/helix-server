@@ -9,13 +9,13 @@
 // repositories/drivers/did.drivers.ts for the reference implementation.
 
 import type { PrismaClient } from '@prisma/client';
-import type { SqliteStore } from '../../storage/sqlite.js';
-import { sqliteLiteral } from '../../storage/sqlite.js';
 import {
+  type SqliteStore,
+  sqliteLiteral,
   UnsupportedStorageDriverError,
   type StorageDriverDeps,
   type StorageDriverKind,
-} from '../../storage/driver-registry.js';
+} from '@helixid/core';
 import type { IssuerKeyRecordRow } from '../issuer-key.repository.js';
 
 type PrismaRaw = PrismaClient & {

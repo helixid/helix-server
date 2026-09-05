@@ -31,9 +31,9 @@ import {
   RefreshTokenReuseDetectedError,
   AuditEvents,
   type IAuditLogger,
-} from '../../core/index.js';
+  type DidRepository,
+} from '@helixid/core';
 import type { AccountRepository } from '../../repositories/account.repository.js';
-import type { DidRepository } from '../../repositories/did.repository.js';
 import type { IssuerKeyRepository } from '../../repositories/issuer-key.repository.js';
 import type { RefreshTokenRepository } from '../../repositories/refresh-token.repository.js';
 import type { IKeyCustody } from './key-custody.js';

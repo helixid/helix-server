@@ -12,33 +12,43 @@
 //
 // See docs/proposal-hosted-rate-limiting.md ("Per-account quotas") — locked
 // values: VC issuance 1000/day, enrollment token generation 2000/day.
-// Counts existing audit log rows for the account in a rolling 24h window;
-// no new logging infrastructure needed, since VC_ISSUED and
-// ENROLLMENT_TOKEN_GENERATED are already audited.
-
-import { AccountQuotaExceededError, AuditEvents, type AuditEventType } from '../../core/index.js';
-import type { AuditLogRepository } from '../../repositories/audit-log.repository.js';
+// Counts existing audit log rows for the account in a rolling 24h window.
+//
+// helix-core's audit log has no accountId column and its own VC_ISSUED /
+// ENROLLMENT_TOKEN_GENERATED events never carry one — core has no concept
+// of accounts. So the routes that gate on a quota (see routes/vc,
+// routes/agent) log a *second*, enterprise-only event of their own
+// (ACCOUNT_VC_ISSUED / ACCOUNT_ENROLLMENT_TOKEN_GENERATED, with accountId in
+// the payload) through the same injected auditLogger, and this scans for
+// those. That means an unindexed payload scan rather than an indexed column
+// lookup — accepted, since there's no column on a core-owned table to index
+// without forking helix-core's schema.
+import { AccountQuotaExceededError, type AuditLogRepository } from '@helixid/core';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+export const ACCOUNT_QUOTA_EVENTS = {
+  VC_ISSUED: 'ACCOUNT_VC_ISSUED',
+  ENROLLMENT_TOKEN_GENERATED: 'ACCOUNT_ENROLLMENT_TOKEN_GENERATED',
+} as const;
 
 export interface QuotaCheckOptions {
   auditLogRepository: AuditLogRepository;
   accountId: string;
-  eventType: AuditEventType;
+  eventType: string;
   dailyLimit: number;
 }
 
 /**
  * Throws AccountQuotaExceededError if the account has hit its daily limit
- * for the given event type. Counts against the audit log's indexed
- * accountId column directly.
+ * for the given event type.
  */
 export async function assertUnderDailyQuota(options: QuotaCheckOptions): Promise<void> {
   const { auditLogRepository, accountId, eventType, dailyLimit } = options;
   const since = new Date(Date.now() - ONE_DAY_MS);
 
-  const rows = await auditLogRepository.list({ eventType, since, limit: 100_000, accountId });
-  const countForAccount = rows.length;
+  const rows = await auditLogRepository.list({ eventType, since, limit: 100_000 });
+  const countForAccount = rows.filter((row) => row.payload['accountId'] === accountId).length;
 
   if (countForAccount >= dailyLimit) {
     throw new AccountQuotaExceededError(
@@ -57,7 +67,7 @@ export async function assertUnderVcIssuanceQuota(
   return assertUnderDailyQuota({
     auditLogRepository,
     accountId,
-    eventType: AuditEvents.VC_ISSUED,
+    eventType: ACCOUNT_QUOTA_EVENTS.VC_ISSUED,
     dailyLimit,
   });
 }
@@ -70,7 +80,7 @@ export async function assertUnderEnrollmentTokenQuota(
   return assertUnderDailyQuota({
     auditLogRepository,
     accountId,
-    eventType: AuditEvents.ENROLLMENT_TOKEN_GENERATED,
+    eventType: ACCOUNT_QUOTA_EVENTS.ENROLLMENT_TOKEN_GENERATED,
     dailyLimit,
   });
 }

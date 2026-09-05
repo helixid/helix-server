@@ -10,8 +10,7 @@
 // (services/auth/key-custody.ts) — never decrypted here.
 
 import type { PrismaClient } from '@prisma/client';
-import type { SqliteStore } from '../storage/sqlite.js';
-import type { StorageDriverKind } from '../storage/driver-registry.js';
+import type { SqliteStore, StorageDriverKind } from '@helixid/core';
 import {
   createIssuerKeyStorageDriver,
   type IssuerKeyStorageDriver,

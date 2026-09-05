@@ -11,15 +11,11 @@
 // limitations under the License.
 
 import { describe, it, expect } from 'vitest';
-import {
-  AdminAuthRequiredError,
-  AccountQuotaExceededError,
-  EmailNotVerifiedError,
-  AuditEvents,
-} from '../../../src/core/index.js';
+import { AdminAuthRequiredError, AccountQuotaExceededError, EmailNotVerifiedError } from '@helixid/core';
 import { resolveAccountOrAdmin } from '../../../src/services/auth/account-or-admin-guard.js';
+import { ACCOUNT_QUOTA_EVENTS } from '../../../src/services/auth/quota.js';
 import { AccountRepository } from '../../../src/repositories/account.repository.js';
-import { AuditLogRepository } from '../../../src/repositories/audit-log.repository.js';
+import { AuditLogRepository } from '@helixid/core';
 
 const ADMIN_KEY = 'super-secret-admin-key';
 
@@ -114,7 +110,7 @@ describe('resolveAccountOrAdmin', () => {
           auditLogRepository,
           adminApiKey: ADMIN_KEY,
         },
-        { requireAuth: true, quota: { eventType: AuditEvents.VC_ISSUED, dailyLimit: 2 } },
+        { requireAuth: true, quota: { eventType: ACCOUNT_QUOTA_EVENTS.VC_ISSUED, dailyLimit: 2 } },
       ),
     ).rejects.toBeInstanceOf(AccountQuotaExceededError);
   });

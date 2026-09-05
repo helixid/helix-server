@@ -15,12 +15,12 @@ import {
   RefreshTokenReuseDetectedError,
   AccountHasNoPasswordError,
   EmailVerificationTokenInvalidError,
-} from '../../../src/core/index.js';
+  DidRepository,
+} from '@helixid/core';
 import { AuthService } from '../../../src/services/auth/auth.service.js';
 import { AesGcmKeyCustody } from '../../../src/services/auth/key-custody.js';
 import type { IEmailSender } from '../../../src/services/auth/email-sender.js';
 import { AccountRepository } from '../../../src/repositories/account.repository.js';
-import { DidRepository } from '../../../src/repositories/did.repository.js';
 import { IssuerKeyRepository } from '../../../src/repositories/issuer-key.repository.js';
 import { RefreshTokenRepository } from '../../../src/repositories/refresh-token.repository.js';
 

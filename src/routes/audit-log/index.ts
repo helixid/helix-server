@@ -1,3 +1,20 @@
+// Copyright 2026 DgVerse LLP
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Wraps @helixid/core's audit-log route with hosted-account scoping on the
+// read side only (the POST ingestion routes stay admin-key-only, unchanged
+// from core's behavior — see helix-core's own routes/audit-log/index.ts).
+// Core's audit_log table carries no accountId column, so a bearer-token
+// caller's view is built by fetching the page of rows and keeping only
+// those a side table (repositories/account-links.repository.ts) or this
+// enterprise's own quota-tracking events (see services/auth/quota.ts)
+// attribute back to that account — a payload scan, not an indexed lookup,
+// since there's no column on a core-owned table to index without forking
+// helix-core's schema.
+
 import {
   AdminAuthRequiredError,
   AuditEvents,
@@ -5,13 +22,14 @@ import {
   HelixError,
   type AuditEventType,
   type IAuditLogger,
-} from '../../core/index.js';
+  type AuditLogRepository,
+} from '@helixid/core';
 import type { FastifyPluginAsync } from 'fastify';
-import type { AuditLogRepository } from '../../repositories/audit-log.repository.js';
 import {
   resolveAccountOrAdmin,
   type AccountOrAdminGuardDeps,
 } from '../../services/auth/account-or-admin-guard.js';
+import type { AccountLinkRepository } from '../../repositories/account-links.repository.js';
 
 interface AuditLogRouteOptions {
   auditLogRepository: AuditLogRepository;
@@ -19,6 +37,8 @@ interface AuditLogRouteOptions {
   adminApiKey?: string | undefined;
   /** Enables hosted-account bearer-token reads (in addition to the admin key) when provided. */
   accountOrAdminGuardDeps?: AccountOrAdminGuardDeps | undefined;
+  vcAccountLinkRepository?: AccountLinkRepository | undefined;
+  enrollmentTokenAccountLinkRepository?: AccountLinkRepository | undefined;
 }
 
 interface ListAuditLogQuery {
@@ -365,11 +385,32 @@ const auditLogRoutes: FastifyPluginAsync<AuditLogRouteOptions> = async (fastify,
       eventType: query.eventType,
       since: normalizeSince(query.since),
       limit: normalizeLimit(query.limit),
-      accountId,
     });
 
+    const scoped = accountId
+      ? (
+          await Promise.all(
+            records.map(async (record) => {
+              if (record.payload['accountId'] === accountId) return record;
+              const vcId = asString(record.payload.vcId);
+              if (vcId && (await options.vcAccountLinkRepository?.getAccountId(vcId)) === accountId) {
+                return record;
+              }
+              const tokenIdHash = asString(record.payload.tokenIdHash);
+              if (
+                tokenIdHash &&
+                (await options.enrollmentTokenAccountLinkRepository?.getAccountId(tokenIdHash)) === accountId
+              ) {
+                return record;
+              }
+              return null;
+            }),
+          )
+        ).filter((record): record is NonNullable<typeof record> => record !== null)
+      : records;
+
     return reply.send(
-      records.map((record) => ({
+      scoped.map((record) => ({
         id: record.id,
         eventType: record.eventType,
         timestamp: record.timestamp.toISOString(),

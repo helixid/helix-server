@@ -9,8 +9,7 @@
 // DID-specific, since there's no W3C standard for accounts/sessions.
 
 import type { PrismaClient } from '@prisma/client';
-import type { SqliteStore } from '../storage/sqlite.js';
-import type { StorageDriverKind } from '../storage/driver-registry.js';
+import type { SqliteStore, StorageDriverKind } from '@helixid/core';
 import { createAccountStorageDriver, type AccountStorageDriver } from './drivers/account.drivers.js';
 
 export interface AccountRecord {

@@ -27,13 +27,8 @@
 //   previously open with no gate at all; this guard preserves that when
 //   `adminApiKey` is unset and no bearer token is given).
 
-import {
-  AdminAuthRequiredError,
-  EmailNotVerifiedError,
-  type AuditEventType,
-} from '../../core/index.js';
+import { AdminAuthRequiredError, EmailNotVerifiedError, type AuditLogRepository } from '@helixid/core';
 import type { AccountRepository } from '../../repositories/account.repository.js';
-import type { AuditLogRepository } from '../../repositories/audit-log.repository.js';
 import type { IAuthService } from './IAuthService.js';
 import { assertUnderDailyQuota } from './quota.js';
 
@@ -70,7 +65,7 @@ export async function resolveAccountOrAdmin(
   deps: AccountOrAdminGuardDeps,
   options: {
     requireAuth: boolean;
-    quota?: { eventType: AuditEventType; dailyLimit: number } | undefined;
+    quota?: { eventType: string; dailyLimit: number } | undefined;
   },
 ): Promise<AccountOrAdminGuardResult> {
   const adminKeyHeader = getHeader(request.headers, 'x-admin-api-key');

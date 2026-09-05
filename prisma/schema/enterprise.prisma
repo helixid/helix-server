@@ -1,0 +1,113 @@
+// Enterprise-only models: hosted accounts, auth, and the account-link side
+// tables that attribute a core-owned Vc/EnrollmentToken/Challenge row back
+// to the hosted account that caused it — without helix-core's own schema
+// (core.prisma, vendored in this same folder) ever needing to know accounts
+// exist. See docs/proposal-hosted-instance.md.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Account {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  // Null when the account was created via Google sign-in only.
+  passwordHash String?
+  // Null until the account links (or is created via) Google sign-in.
+  googleId     String?   @unique
+  issuerDid    String?   @unique
+  // Both optional, collected at registration for context only -- neither
+  // gates or scopes anything.
+  companyName      String?
+  fieldOfOperation String?
+  // Google accounts are verified by construction (emailVerified check at
+  // link/create time); password accounts must click the emailed link.
+  emailVerifiedAt            DateTime?
+  emailVerificationTokenHash String?
+  emailVerificationExpiresAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  issuerKey     IssuerKeyRecord?
+  refreshTokens RefreshToken[]
+
+  @@map("accounts")
+}
+
+model IssuerKeyRecord {
+  id                  String   @id @default(cuid())
+  accountId           String   @unique
+  did                 String   @unique
+  // AES-256-GCM ciphertext of the raw Ed25519 private key, hex-encoded.
+  // Encrypted/decrypted only through KeyCustody (encrypt/decrypt/sign),
+  // never handled directly at call sites — see proposal-hosted-instance.md
+  // ("Private key storage (interim, pre-KMS)").
+  encryptedPrivateKey String
+  iv                  String
+  authTag             String
+  algorithm           String   @default("aes-256-gcm")
+  createdAt           DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id])
+
+  @@map("issuer_key_records")
+}
+
+model RefreshToken {
+  id                String    @id @default(cuid())
+  accountId         String
+  // sha256 hex of the opaque bearer token — mirrors the hashToken() pattern
+  // already used for enrollment tokens in agent.service.ts. The raw token
+  // is returned to the client once and never stored.
+  tokenHash         String    @unique
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  // Points at the token this one was rotated into, forming a chain used for
+  // reuse detection: presenting an already-revoked token is treated as a
+  // compromise signal (see AuthService.refresh()).
+  replacedByTokenId String?
+  createdAt         DateTime  @default(now())
+
+  account Account @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@map("refresh_tokens")
+}
+
+// ── Account-link side tables ────────────────────────────────────────────────
+// helix-core's Vc/EnrollmentToken/Challenge models carry no accountId column
+// (core has no concept of accounts at all — see helix-core's schema.prisma).
+// These tables record the same fact from the enterprise side instead: "this
+// core-owned row belongs to this account", keyed by the core row's own
+// natural key (vcId / tokenHash / challengeId) rather than an internal id,
+// since core never returns internal ids across its public service surface.
+
+model VcAccountLink {
+  vcId      String   @id
+  accountId String
+  createdAt DateTime @default(now())
+
+  @@index([accountId])
+  @@map("vc_account_links")
+}
+
+model EnrollmentTokenAccountLink {
+  tokenHash String   @id
+  accountId String
+  createdAt DateTime @default(now())
+
+  @@index([accountId])
+  @@map("enrollment_token_account_links")
+}
+
+model ChallengeAccountLink {
+  challengeId String   @id
+  accountId   String
+  createdAt   DateTime @default(now())
+
+  @@map("challenge_account_links")
+}

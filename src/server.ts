@@ -1,5 +1,9 @@
 // Copyright 2026 DgVerse LLP
 // Licensed under the Apache License, Version 2.0
+//
+// Enterprise server: composes @helixid/core's routes/services unchanged
+// for everything account-agnostic, and layers hosted accounts/auth/quotas
+// on top for the rest. See docs/proposal-hosted-instance.md.
 import './loadEnv.js';
 import crypto from 'node:crypto';
 import { dirname, isAbsolute, resolve } from 'node:path';
@@ -16,42 +20,112 @@ import {
   generateKeyPair,
   loadConfigFromEnv,
   resolveDidMethod,
+  errorHandler,
+  ApiAuditLogger,
+  createHederaClient,
+  createDidCache,
+  createStatusListCache,
+  extractEd25519PublicKeyHexFromDIDDocument,
+  DidRepository,
+  VcRepository,
+  AuditLogRepository,
+  AgentRepository,
+  ServiceRegistryRepository,
+  PreparedPayloadRepository,
+  DIDService,
+  VCService,
+  VPService,
+  AgentService,
+  PreparedPayloadService,
+  SqliteStore,
+  didRoutes,
+  didWebRoutes,
+  statusListRoutes,
+  vpRoutes,
+  sessionRoutes,
+  preparedPayloadRoutes,
   type DIDDocument,
-} from './core/index.js';
+  type RedisLike,
+} from '@helixid/core';
 
-import { errorHandler } from './middleware/errorHandler.js';
-import { ApiAuditLogger } from './audit/index.js';
-import { createHederaClient } from './hedera/createHederaClient.js';
-import { DidRepository } from './repositories/did.repository.js';
-import { VcRepository } from './repositories/vc.repository.js';
-import { AuditLogRepository } from './repositories/audit-log.repository.js';
-import { AgentRepository } from './repositories/agent.repository.js';
-import { ServiceRegistryRepository } from './repositories/service-registry.repository.js';
-import { PreparedPayloadRepository } from './repositories/prepared-payload.repository.js';
 import { AccountRepository } from './repositories/account.repository.js';
 import { IssuerKeyRepository } from './repositories/issuer-key.repository.js';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository.js';
-import { createDidCache, createStatusListCache } from './cache/cacheFactory.js';
-import { extractEd25519PublicKeyHexFromDIDDocument } from './services/did/publicKey.js';
-import { DIDService } from './services/did/did.service.js';
-import { VCService } from './services/vc/vc.service.js';
-import { VPService } from './services/vp/vp.service.js';
-import { AgentService } from './services/agent/agent.service.js';
-import { PreparedPayloadService } from './services/prepared-payload/index.js';
+import {
+  createVcAccountLinkRepository,
+  createEnrollmentTokenAccountLinkRepository,
+  createChallengeAccountLinkRepository,
+} from './repositories/account-links.repository.js';
 import { AuthService, AesGcmKeyCustody, ConsoleEmailSender } from './services/auth/index.js';
-import didRoutes from './routes/did/index.js';
-import didWebRoutes from './routes/did-web/index.js';
 import vcRoutes from './routes/vc/index.js';
-import statusListRoutes from './routes/status-list/index.js';
-import vpRoutes from './routes/vp/index.js';
 import agentRoutes from './routes/agent/index.js';
 import auditLogRoutes from './routes/audit-log/index.js';
-import sessionRoutes from './routes/sessions/index.js';
-import preparedPayloadRoutes from './routes/prepared-payload/index.js';
 import authRoutes from './routes/auth/index.js';
 import accountDidRoutes from './routes/account-did/index.js';
-import type { RedisLike } from './cache/RedisCache.js';
-import { SqliteStore } from './storage/sqlite.js';
+
+// Enterprise-only tables, appended to the same SQLite file core initializes
+// (see @helixid/core's SqliteStore — this is its documented extension seam).
+const ENTERPRISE_SQLITE_DDL = `
+CREATE TABLE IF NOT EXISTS accounts (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  password_hash TEXT,
+  google_id TEXT,
+  issuer_did TEXT,
+  company_name TEXT,
+  field_of_operation TEXT,
+  email_verified_at TEXT,
+  email_verification_token_hash TEXT,
+  email_verification_expires_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_email ON accounts(email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_google_id ON accounts(google_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_issuer_did ON accounts(issuer_did);
+
+CREATE TABLE IF NOT EXISTS issuer_key_records (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL UNIQUE,
+  did TEXT NOT NULL UNIQUE,
+  encrypted_private_key TEXT NOT NULL,
+  iv TEXT NOT NULL,
+  auth_tag TEXT NOT NULL,
+  algorithm TEXT NOT NULL DEFAULT 'aes-256-gcm',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  revoked_at TEXT,
+  replaced_by_token_id TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_account_id ON refresh_tokens(account_id);
+
+CREATE TABLE IF NOT EXISTS vc_account_links (
+  vc_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_vc_account_links_account_id ON vc_account_links(account_id);
+
+CREATE TABLE IF NOT EXISTS enrollment_token_account_links (
+  token_hash TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_enrollment_token_account_links_account_id ON enrollment_token_account_links(account_id);
+
+CREATE TABLE IF NOT EXISTS challenge_account_links (
+  challenge_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+`.trim();
 
 const config = loadConfigFromEnv();
 const storageAdapter =
@@ -80,7 +154,7 @@ if (usingPostgres && config.NODE_ENV !== 'test' && /test/i.test(databaseName)) {
 const pool = usingPostgres ? new pg.Pool({ connectionString: config.DATABASE_URL }) : null;
 const adapter = pool ? new PrismaPg(pool) : null;
 const prisma = adapter ? new PrismaClient({ adapter }) : undefined;
-const sqlite = usingSqlite ? new SqliteStore(sqlitePath) : undefined;
+const sqlite = usingSqlite ? new SqliteStore(sqlitePath, ENTERPRISE_SQLITE_DDL) : undefined;
 
 const redis: RedisLike | null =
   cacheAdapter === 'redis' && config.CACHE_L2_ENABLED && config.REDIS_URL
@@ -97,6 +171,9 @@ const preparedPayloadRepository = new PreparedPayloadRepository(prisma, sqlite);
 const accountRepository = new AccountRepository(prisma, sqlite);
 const issuerKeyRepository = new IssuerKeyRepository(prisma, sqlite);
 const refreshTokenRepository = new RefreshTokenRepository(prisma, sqlite);
+const vcAccountLinkRepository = createVcAccountLinkRepository(prisma, sqlite);
+const enrollmentTokenAccountLinkRepository = createEnrollmentTokenAccountLinkRepository(prisma, sqlite);
+const challengeAccountLinkRepository = createChallengeAccountLinkRepository(prisma, sqlite);
 await serviceRegistry.seedBuiltIns();
 
 await ensureIssuerDidCached();
@@ -181,9 +258,6 @@ const app = Fastify({
 // individual auth routes (see routes/auth/index.ts).
 const isHostedMode = config.HOSTED_MODE;
 const rateLimitGlobalMax = config.HOSTED_RATE_LIMIT_GLOBAL_MAX;
-const rateLimitLoginMax = config.HOSTED_RATE_LIMIT_LOGIN_MAX;
-const rateLimitRegisterMax = config.HOSTED_RATE_LIMIT_REGISTER_MAX;
-const rateLimitRefreshMax = config.HOSTED_RATE_LIMIT_REFRESH_MAX;
 
 if (isHostedMode) {
   await app.register(rateLimit, {
@@ -192,7 +266,6 @@ if (isHostedMode) {
     timeWindow: '1 minute',
   });
 }
-
 
 app.addSchema({
   $id: 'Error',
@@ -224,11 +297,6 @@ app.get('/health', async () => ({
   storageAdapter,
   database: usingPostgres ? databaseName : usingSqlite ? sqlitePath : 'disabled',
   cacheAdapter,
-  // didMethod/issuerDid: exposed so test harnesses (see
-  // tests/utils/liveApi.ts) can read back the actual resolved issuer DID
-  // instead of duplicating loadConfig()'s did:key/did:web auto-derivation
-  // logic — the issuer DID isn't always known in advance (e.g. did:web's
-  // domain includes a dynamically-chosen port in tests).
   didMethod,
   issuerDid: config.HELIX_ISSUER_DID,
 }));
@@ -268,15 +336,16 @@ async function ensureIssuerDidCached(): Promise<void> {
   });
 }
 
+const accountOrAdminGuardDeps = {
+  authService,
+  accountRepository,
+  auditLogRepository,
+  adminApiKey: config.HELIX_ADMIN_API_KEY,
+};
+
+// Unchanged from core — no account concept touches these at all.
 await app.register(didRoutes, { didService });
 await app.register(didWebRoutes, { issuerDid: config.HELIX_ISSUER_DID, didDomain: config.DID_DOMAIN, didRepository });
-await app.register(vcRoutes, {
-  prefix: '/v1/vcs',
-  vcService,
-  adminApiKey: config.HELIX_ADMIN_API_KEY,
-  accountOrAdminGuardDeps: { authService, accountRepository, auditLogRepository, adminApiKey: config.HELIX_ADMIN_API_KEY },
-  vcIssuanceDailyQuota: config.HOSTED_QUOTA_VC_ISSUANCE_PER_DAY,
-});
 await app.register(preparedPayloadRoutes, {
   prefix: '/v1/vcs',
   preparedPayloadService,
@@ -291,18 +360,38 @@ await app.register(sessionRoutes, {
   prefix: '/v1/sessions',
   publicKeyHex: jwtSessionKeyPair.publicKey,
 });
+
+// Enterprise's own wrappers around core's VC/agent/audit-log services —
+// core-agnostic account scoping layered on top (see each route file's
+// header comment for how ownership is tracked without a column on a
+// core-owned table).
+await app.register(vcRoutes, {
+  prefix: '/v1/vcs',
+  vcService,
+  adminApiKey: config.HELIX_ADMIN_API_KEY,
+  accountOrAdminGuardDeps,
+  vcIssuanceDailyQuota: config.HOSTED_QUOTA_VC_ISSUANCE_PER_DAY,
+  vcAccountLinkRepository,
+  auditLogger,
+});
 await app.register(auditLogRoutes, {
   prefix: '/v1/audit-log',
   auditLogRepository,
   auditLogger,
   adminApiKey: config.HELIX_ADMIN_API_KEY,
-  accountOrAdminGuardDeps: { authService, accountRepository, auditLogRepository, adminApiKey: config.HELIX_ADMIN_API_KEY },
+  accountOrAdminGuardDeps,
+  vcAccountLinkRepository,
+  enrollmentTokenAccountLinkRepository,
 });
 await app.register(agentRoutes, {
   prefix: '/v1',
   agentService,
-  accountOrAdminGuardDeps: { authService, accountRepository, auditLogRepository, adminApiKey: config.HELIX_ADMIN_API_KEY },
+  accountOrAdminGuardDeps,
   enrollmentTokenDailyQuota: config.HOSTED_QUOTA_ENROLLMENT_TOKEN_PER_DAY,
+  enrollmentTokenAccountLinkRepository,
+  challengeAccountLinkRepository,
+  vcAccountLinkRepository,
+  auditLogger,
 });
 await app.register(authRoutes, {
   prefix: '/v1/auth',

@@ -25,6 +25,9 @@ importers:
       '@fastify/swagger-ui':
         specifier: ^5.2.6
         version: 5.2.6
+      '@helixid/core':
+        specifier: file:../helix-core
+        version: file:../helix-core(bn.js@5.2.5)(magicast@0.5.4)(prisma@7.10.0(@types/react@19.2.18)(better-sqlite3@12.11.1)(magicast@0.5.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))(typescript@5.9.3)
       '@helixid/did-hedera':
         specifier: github:helixid/helix-sdk-js#path:did-hedera
         version: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:did-hedera(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
@@ -772,6 +775,14 @@ packages:
 
   '@helixid/core@0.1.5':
     resolution: {integrity: sha512-mdqBzfe1katc0BbcWU0jKTWkSWxvizryknFQiiPEnSYI+xsbCa5SLLIAH0CUgdIH0C1EITnqCpzE1KfX/mcLvQ==}
+
+  '@helixid/core@file:../helix-core':
+    resolution: {directory: ../helix-core, type: directory}
+    engines: {node: ^20.19.0 || >=22.12.0, pnpm: '>=9.0.0'}
+
+  '@helixid/did-hedera@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06#path:did-hedera':
+    resolution: {path: did-hedera, tarball: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06}
+    version: 0.1.2
 
   '@helixid/did-hedera@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:did-hedera':
     resolution: {path: did-hedera, tarball: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0}
@@ -4610,6 +4621,50 @@ snapshots:
       '@noble/ed25519': 2.3.0
       '@noble/hashes': 1.8.0
       zod: 3.25.76
+
+  '@helixid/core@file:../helix-core(bn.js@5.2.5)(magicast@0.5.4)(prisma@7.10.0(@types/react@19.2.18)(better-sqlite3@12.11.1)(magicast@0.5.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))(typescript@5.9.3)':
+    dependencies:
+      '@fastify/sensible': 6.0.5
+      '@fastify/swagger': 9.8.1
+      '@fastify/swagger-ui': 5.2.6
+      '@helixid/did-hedera': https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06#path:did-hedera(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
+      '@noble/curves': 1.9.7
+      '@noble/ed25519': 2.3.0
+      '@noble/hashes': 1.8.0
+      '@prisma/adapter-pg': 7.10.0
+      '@prisma/client': 7.10.0(prisma@7.10.0(@types/react@19.2.18)(better-sqlite3@12.11.1)(magicast@0.5.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(typescript@5.9.3)
+      '@prisma/config': 7.10.0(magicast@0.5.4)
+      better-sqlite3: 12.11.1
+      bs58: 6.0.0
+      dotenv: 17.4.2
+      fastify: 5.12.1
+      ioredis: 5.11.1
+      pg: 8.23.0
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - bn.js
+      - expo-crypto
+      - magicast
+      - pg-native
+      - prisma
+      - react-native
+      - supports-color
+      - typescript
+
+  '@helixid/did-hedera@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06#path:did-hedera(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))':
+    dependencies:
+      '@hashgraph/sdk': 2.81.0(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
+      '@hiero-did-sdk/hcs': 0.1.8(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
+      '@hiero-did-sdk/registrar': 0.1.8(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
+      '@hiero-did-sdk/resolver': 0.1.8(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
+      '@noble/ed25519': 2.3.0
+      '@noble/hashes': 1.8.0
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - bn.js
+      - expo-crypto
+      - react-native
+      - supports-color
 
   '@helixid/did-hedera@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:did-hedera(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))':
     dependencies:

@@ -9,14 +9,31 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// Wraps @helixid/core's VCService with hosted-account auth/scoping. Core's
+// Vc table carries no accountId column (core has no concept of accounts),
+// so ownership is tracked here instead, in the vc_account_links side table
+// (see repositories/account-links.repository.ts), keyed by vcId — which
+// core's issueVC()/getVC() already return/accept without needing to know
+// why the caller cares about it.
 
 import { FastifyPluginAsync } from 'fastify';
-import { AdminAuthRequiredError, ErrorCode, HelixError, AuditEvents } from '../../core/index.js';
-import type { IVCService, IssueVCParams, RenewVCOptions } from '../../services/vc/vc.service.js';
+import {
+  AdminAuthRequiredError,
+  ErrorCode,
+  HelixError,
+  type AuditEventType,
+  type IVCService,
+  type IssueVCParams,
+  type RenewVCOptions,
+} from '@helixid/core';
 import {
   resolveAccountOrAdmin,
   type AccountOrAdminGuardDeps,
 } from '../../services/auth/account-or-admin-guard.js';
+import { ACCOUNT_QUOTA_EVENTS } from '../../services/auth/quota.js';
+import type { AccountLinkRepository } from '../../repositories/account-links.repository.js';
+import type { IAuditLogger } from '@helixid/core';
 
 const VC_STATUSES = ['active', 'revoked', 'expired'] as const;
 type VCStatus = (typeof VC_STATUSES)[number];
@@ -28,16 +45,13 @@ export interface VcRouteOptions {
   accountOrAdminGuardDeps?: AccountOrAdminGuardDeps | undefined;
   /** Required alongside accountOrAdminGuardDeps — see docs/proposal-hosted-rate-limiting.md. */
   vcIssuanceDailyQuota?: number | undefined;
+  /** Required alongside accountOrAdminGuardDeps, to record/read vcId -> accountId ownership. */
+  vcAccountLinkRepository?: AccountLinkRepository | undefined;
+  auditLogger?: IAuditLogger | undefined;
 }
 
 interface VCParams {
   vcId: string;
-}
-
-interface ListVCQuery {
-  subjectDid?: string;
-  status?: string;
-  limit?: string;
 }
 
 /**
@@ -83,9 +97,13 @@ const vcRoutes: FastifyPluginAsync<VcRouteOptions> = async (fastify, options) =>
       subjectDid: query.subjectDid,
       status: query.status as VCStatus | undefined,
       limit,
-      accountId,
     });
-    return reply.send(result);
+
+    if (!accountId) {
+      return reply.send(result);
+    }
+    const ownedVcIds = new Set(await options.vcAccountLinkRepository!.listKeysForAccount(accountId));
+    return reply.send(result.filter((summary) => ownedVcIds.has(summary.vcId)));
   });
 
   // POST /v1/vcs - Issue a VC
@@ -98,7 +116,7 @@ const vcRoutes: FastifyPluginAsync<VcRouteOptions> = async (fastify, options) =>
       const result = await resolveAccountOrAdmin(request, options.accountOrAdminGuardDeps, {
         requireAuth: true,
         quota: options.vcIssuanceDailyQuota
-          ? { eventType: AuditEvents.VC_ISSUED, dailyLimit: options.vcIssuanceDailyQuota }
+          ? { eventType: ACCOUNT_QUOTA_EVENTS.VC_ISSUED, dailyLimit: options.vcIssuanceDailyQuota }
           : undefined,
       });
       accountId = result.accountId;
@@ -107,7 +125,15 @@ const vcRoutes: FastifyPluginAsync<VcRouteOptions> = async (fastify, options) =>
     }
 
     const params = request.body as IssueVCParams;
-    const result = await vcService.issueVC({ ...params, accountId }, request.id);
+    const result = await vcService.issueVC(params, request.id);
+    if (accountId) {
+      await options.vcAccountLinkRepository!.link(result.vcId, accountId);
+      options.auditLogger?.log(ACCOUNT_QUOTA_EVENTS.VC_ISSUED as AuditEventType, {
+        requestId: request.id,
+        accountId,
+        vcId: result.vcId,
+      });
+    }
     return reply.status(201).send(result);
   });
 
@@ -135,8 +161,8 @@ const vcRoutes: FastifyPluginAsync<VcRouteOptions> = async (fastify, options) =>
         requireAuth: true,
       });
       if (accountId) {
-        const existing = await vcService.getVC(vcId, request.id);
-        if (existing.accountId !== accountId) {
+        const owner = await options.vcAccountLinkRepository!.getAccountId(vcId);
+        if (owner !== accountId) {
           throw new HelixError(ErrorCode.VC_NOT_FOUND, 'Credential not found', 404);
         }
       }
