@@ -63,6 +63,8 @@ function toSummary(account: {
   passwordHash: string | null;
   googleId: string | null;
   emailVerifiedAt: Date | null;
+  companyName?: string | null;
+  fieldOfOperation?: string | null;
 }): AccountSummary {
   return {
     id: account.id,
@@ -71,6 +73,8 @@ function toSummary(account: {
     hasPassword: account.passwordHash !== null,
     hasGoogle: account.googleId !== null,
     emailVerified: account.emailVerifiedAt !== null,
+    companyName: account.companyName ?? null,
+    fieldOfOperation: account.fieldOfOperation ?? null,
   };
 }
 
@@ -99,7 +103,13 @@ export class AuthService implements IAuthService {
     }
 
     const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
-    const account = await this.accountRepository.create({ email, passwordHash, googleId: null });
+    const account = await this.accountRepository.create({
+      email,
+      passwordHash,
+      googleId: null,
+      companyName: input.companyName ?? null,
+      fieldOfOperation: input.fieldOfOperation ?? null,
+    });
 
     const issuerDid = await provisionAccountIssuerDid({
       accountId: account.id,

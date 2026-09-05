@@ -33,6 +33,12 @@ export interface AuthRouteOptions {
 interface EmailPasswordBody {
   email?: unknown;
   password?: unknown;
+  companyName?: unknown;
+  fieldOfOperation?: unknown;
+}
+
+function asOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
 interface RefreshBody {
@@ -58,8 +64,14 @@ const authRoutes: FastifyPluginAsync<AuthRouteOptions> = async (fastify, options
     '/register',
     { config: { rateLimit: { max: options.rateLimits?.registerMax ?? 3, timeWindow: '1 hour' } } },
     async (request, reply) => {
-      const { email, password } = requireEmailPassword(request.body as EmailPasswordBody);
-      const { account, tokens } = await options.authService.register({ email, password });
+      const body = request.body as EmailPasswordBody;
+      const { email, password } = requireEmailPassword(body);
+      const { account, tokens } = await options.authService.register({
+        email,
+        password,
+        companyName: asOptionalString(body.companyName),
+        fieldOfOperation: asOptionalString(body.fieldOfOperation),
+      });
       return reply.code(201).send({ account, ...tokens });
     },
   );

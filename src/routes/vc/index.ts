@@ -54,9 +54,19 @@ const vcRoutes: FastifyPluginAsync<VcRouteOptions> = async (fastify, options) =>
     }
   }
 
-  // GET /v1/vcs - List VC summaries
+  // GET /v1/vcs - List VC summaries. Admin key sees everything (unchanged);
+  // a hosted-account bearer token sees only VCs issued for that account.
   fastify.get('', async (request, reply) => {
-    requireAdmin(request);
+    let accountId: string | undefined;
+    if (options.accountOrAdminGuardDeps) {
+      const result = await resolveAccountOrAdmin(request, options.accountOrAdminGuardDeps, {
+        requireAuth: true,
+      });
+      accountId = result.accountId;
+    } else {
+      requireAdmin(request);
+    }
+
     const query = request.query as { subjectDid?: string; status?: string; limit?: string };
     if (query.status && !(VC_STATUSES as readonly string[]).includes(query.status)) {
       throw new HelixError(
@@ -73,6 +83,7 @@ const vcRoutes: FastifyPluginAsync<VcRouteOptions> = async (fastify, options) =>
       subjectDid: query.subjectDid,
       status: query.status as VCStatus | undefined,
       limit,
+      accountId,
     });
     return reply.send(result);
   });
@@ -114,10 +125,24 @@ const vcRoutes: FastifyPluginAsync<VcRouteOptions> = async (fastify, options) =>
     return reply.send({ vcId, status });
   });
 
-  // POST /v1/vcs/:vcId/revoke - Revoke a VC
+  // POST /v1/vcs/:vcId/revoke - Revoke a VC. Admin key may revoke anything
+  // (unchanged); a hosted-account bearer token may only revoke a VC issued
+  // for that same account.
   fastify.post('/:vcId/revoke', async (request, reply) => {
-    requireAdmin(request);
     const { vcId } = request.params as VCParams;
+    if (options.accountOrAdminGuardDeps) {
+      const { accountId } = await resolveAccountOrAdmin(request, options.accountOrAdminGuardDeps, {
+        requireAuth: true,
+      });
+      if (accountId) {
+        const existing = await vcService.getVC(vcId, request.id);
+        if (existing.accountId !== accountId) {
+          throw new HelixError(ErrorCode.VC_NOT_FOUND, 'Credential not found', 404);
+        }
+      }
+    } else {
+      requireAdmin(request);
+    }
     const result = await vcService.revokeVC(vcId, request.id);
     return reply.send(result);
   });

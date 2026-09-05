@@ -69,10 +69,12 @@ CREATE TABLE IF NOT EXISTS vcs (
   delegation_depth INTEGER,
   max_delegation_depth INTEGER,
   parent_vc_id TEXT,
+  account_id TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_vcs_subject_did ON vcs(subject_did);
+CREATE INDEX IF NOT EXISTS idx_vcs_account_id ON vcs(account_id);
 
 CREATE TABLE IF NOT EXISTS status_list_entries (
   list_id TEXT PRIMARY KEY,
@@ -97,10 +99,12 @@ CREATE TABLE IF NOT EXISTS enrollment_tokens (
   requested_scopes TEXT NOT NULL,
   requested_domains TEXT NOT NULL,
   max_delegation_depth INTEGER NOT NULL DEFAULT 0,
+  account_id TEXT,
   expires_at TEXT NOT NULL,
   used_at TEXT,
   created_at TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_enrollment_tokens_account_id ON enrollment_tokens(account_id);
 
 CREATE TABLE IF NOT EXISTS challenges (
   id TEXT PRIMARY KEY,
@@ -149,6 +153,8 @@ CREATE TABLE IF NOT EXISTS accounts (
   password_hash TEXT,
   google_id TEXT,
   issuer_did TEXT,
+  company_name TEXT,
+  field_of_operation TEXT,
   email_verified_at TEXT,
   email_verification_token_hash TEXT,
   email_verification_expires_at TEXT,
@@ -186,8 +192,10 @@ CREATE TABLE IF NOT EXISTS audit_log (
   timestamp TEXT NOT NULL,
   event_type TEXT NOT NULL,
   request_id TEXT,
-  payload_json TEXT NOT NULL
+  payload_json TEXT NOT NULL,
+  account_id TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_audit_log_account_id ON audit_log(account_id);
       `.trim(),
     );
   }

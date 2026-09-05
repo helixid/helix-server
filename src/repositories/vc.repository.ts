@@ -17,6 +17,8 @@ export interface VCRecord {
   delegationDepth?: number | null;
   maxDelegationDepth?: number | null;
   parentVcId?: string | null;
+  /** Hosted account that caused this VC to be issued; null for admin/self-hosted issuance. */
+  accountId?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -24,6 +26,8 @@ export interface VCRecord {
 export interface ListVcFilters {
   subjectDid?: string | undefined;
   status?: 'active' | 'revoked' | 'expired' | undefined;
+  /** When set, scopes the list to VCs issued for this hosted account only. */
+  accountId?: string | undefined;
   limit: number;
 }
 
@@ -46,6 +50,7 @@ export interface CreateVcParams {
   delegationDepth?: number | undefined;
   maxDelegationDepth?: number | undefined;
   parentVcId?: string | undefined;
+  accountId?: string | undefined;
 }
 
 interface LegacyCreateVCParams {
@@ -102,7 +107,9 @@ export class VcRepository {
     return this.driver.findActiveBySubjectDid(subjectDid, vcType);
   }
 
-  async findMany(filters: { subjectDid?: string | undefined } = {}): Promise<VCRecord[]> {
+  async findMany(
+    filters: { subjectDid?: string | undefined; accountId?: string | undefined } = {},
+  ): Promise<VCRecord[]> {
     return this.driver.findMany(filters);
   }
 

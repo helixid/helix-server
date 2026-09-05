@@ -102,6 +102,7 @@ export class PrismaAgentStorageDriver implements AgentStorageDriver {
         agentName: data.agentName,
         requestedScopes: data.requestedScopes,
         requestedDomains: data.requestedDomains,
+        accountId: data.accountId ?? null,
         expiresAt: data.expiresAt,
       },
     })) as EnrollmentTokenRecord;
@@ -241,6 +242,7 @@ type SqliteEnrollmentTokenRow = {
   requested_scopes: string;
   requested_domains: string;
   max_delegation_depth: number;
+  account_id: string | null;
   expires_at: string;
   used_at: string | null;
   created_at: string;
@@ -286,6 +288,7 @@ function fromEnrollmentTokenRow(
     requestedScopes: row.requested_scopes,
     requestedDomains: row.requested_domains,
     maxDelegationDepth: row.max_delegation_depth,
+    accountId: row.account_id,
     expiresAt: new Date(row.expires_at),
     usedAt: row.used_at ? new Date(row.used_at) : null,
     createdAt: new Date(row.created_at),
@@ -341,7 +344,7 @@ export class SqliteAgentStorageDriver implements AgentStorageDriver {
     this.sqlite.execute(`
       INSERT INTO enrollment_tokens (
         id, token_hash, agent_name, requested_scopes, requested_domains,
-        max_delegation_depth, expires_at, used_at, created_at
+        max_delegation_depth, account_id, expires_at, used_at, created_at
       ) VALUES (
         ${sqliteLiteral(id)},
         ${sqliteLiteral(data.tokenHash)},
@@ -349,6 +352,7 @@ export class SqliteAgentStorageDriver implements AgentStorageDriver {
         ${sqliteLiteral(data.requestedScopes)},
         ${sqliteLiteral(data.requestedDomains)},
         ${sqliteLiteral(maxDepth)},
+        ${sqliteLiteral(data.accountId ?? null)},
         ${sqliteLiteral(data.expiresAt)},
         NULL,
         ${sqliteLiteral(now)}

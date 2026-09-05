@@ -133,6 +133,7 @@ export class AgentService implements IAgentService {
       requestedScopes: JSON.stringify(input.requestedScopes),
       requestedDomains: JSON.stringify(input.requestedDomains ?? []),
       maxDelegationDepth: input.maxDelegationDepth ?? 0,
+      accountId: input.accountId ?? null,
       expiresAt,
     });
     this.auditLogger.log(AuditEvents.ENROLLMENT_TOKEN_GENERATED, {
@@ -223,6 +224,10 @@ export class AgentService implements IAgentService {
         delegationDepth: 0,
         maxDelegationDepth: tokenRecord.maxDelegationDepth ?? 0,
         expiresInSeconds: this.enrollmentTokenTtlSeconds * 100,
+        // The agent redeeming this token never presents the minting
+        // account's own credentials -- this is how the resulting VC gets
+        // attributed back to whichever hosted account minted the token.
+        accountId: tokenRecord.accountId ?? undefined,
       },
       requestId,
     );
@@ -413,6 +418,7 @@ export class AgentService implements IAgentService {
         delegationDepth: 0,
         maxDelegationDepth: enrollmentToken?.maxDelegationDepth ?? 0,
         expiresInSeconds: this.enrollmentTokenTtlSeconds * 100,
+        accountId: enrollmentToken?.accountId ?? undefined,
       },
       requestId,
     );

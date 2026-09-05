@@ -19,6 +19,8 @@ export interface AccountRecord {
   passwordHash: string | null;
   googleId: string | null;
   issuerDid: string | null;
+  companyName: string | null;
+  fieldOfOperation: string | null;
   emailVerifiedAt: Date | null;
   emailVerificationTokenHash: string | null;
   emailVerificationExpiresAt: Date | null;
@@ -53,6 +55,8 @@ export class AccountRepository {
     email: string;
     passwordHash: string | null;
     googleId: string | null;
+    companyName?: string | null;
+    fieldOfOperation?: string | null;
   }): Promise<AccountRecord> {
     return this.driver.create(data);
   }

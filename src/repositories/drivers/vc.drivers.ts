@@ -56,7 +56,10 @@ export interface VcStorageDriver {
   findByVcId(vcId: string): Promise<VCRecord | null>;
   listVcs(filters: ListVcFilters): Promise<VCRecord[]>;
   findActiveBySubjectDid(subjectDid: string, vcType?: string): Promise<VCRecord[]>;
-  findMany(filters: { subjectDid?: string | undefined }): Promise<VCRecord[]>;
+  findMany(filters: {
+    subjectDid?: string | undefined;
+    accountId?: string | undefined;
+  }): Promise<VCRecord[]>;
   findStatusListById(listId: string): Promise<StatusListEntryRecord | null>;
   createStatusList(listId: string, encodedList: string): Promise<StatusListEntryRecord>;
   claimNextIndex(listId: string): Promise<{ list: StatusListEntryRecord; claimedIndex: number }>;
@@ -113,6 +116,7 @@ export class PrismaVcStorageDriver implements VcStorageDriver {
           privilegeScopes: params.privilegeScopes ?? null,
           statusListIndex: params.statusListIndex,
           expiresAt: params.expiresAt,
+          accountId: params.accountId ?? null,
         },
       });
     }
@@ -130,8 +134,9 @@ export class PrismaVcStorageDriver implements VcStorageDriver {
         "delegatedFrom",
         "delegationDepth",
         "maxDelegationDepth",
-        "parentVcId"
-      ) VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8,$9,$10,$11,$12)
+        "parentVcId",
+        "accountId"
+      ) VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8,$9,$10,$11,$12,$13)
       RETURNING *`,
       makeId('vcdb'),
       params.vcId,
@@ -145,6 +150,7 @@ export class PrismaVcStorageDriver implements VcStorageDriver {
       params.delegationDepth ?? null,
       params.maxDelegationDepth ?? null,
       params.parentVcId ?? null,
+      params.accountId ?? null,
     );
     return requireVcRow(rows[0]);
   }
@@ -164,6 +170,7 @@ export class PrismaVcStorageDriver implements VcStorageDriver {
     const now = new Date();
     const where: Record<string, unknown> = {};
     if (filters.subjectDid) where.subjectDid = filters.subjectDid;
+    if (filters.accountId) where.accountId = filters.accountId;
     if (filters.status === 'revoked') {
       where.revokedAt = { not: null };
     } else if (filters.status === 'expired') {
@@ -204,18 +211,34 @@ export class PrismaVcStorageDriver implements VcStorageDriver {
     return filterByType(records, vcType);
   }
 
-  async findMany(filters: { subjectDid?: string | undefined }): Promise<VCRecord[]> {
+  async findMany(filters: {
+    subjectDid?: string | undefined;
+    accountId?: string | undefined;
+  }): Promise<VCRecord[]> {
     if (!hasRealRaw(this.prisma)) {
-      return this.db.vc.findMany({
-        where: filters.subjectDid ? { subjectDid: filters.subjectDid } : {},
-        orderBy: { createdAt: 'desc' },
-      });
+      const where: Record<string, unknown> = {};
+      if (filters.subjectDid) where.subjectDid = filters.subjectDid;
+      if (filters.accountId) where.accountId = filters.accountId;
+      return this.db.vc.findMany({ where, orderBy: { createdAt: 'desc' } });
     }
 
+    if (filters.subjectDid && filters.accountId) {
+      return (this.prisma as PrismaRaw).$queryRawUnsafe<VCRecord[]>(
+        `SELECT * FROM "vcs" WHERE "subjectDid" = $1 AND "accountId" = $2 ORDER BY "createdAt" DESC`,
+        filters.subjectDid,
+        filters.accountId,
+      );
+    }
     if (filters.subjectDid) {
       return (this.prisma as PrismaRaw).$queryRawUnsafe<VCRecord[]>(
         `SELECT * FROM "vcs" WHERE "subjectDid" = $1 ORDER BY "createdAt" DESC`,
         filters.subjectDid,
+      );
+    }
+    if (filters.accountId) {
+      return (this.prisma as PrismaRaw).$queryRawUnsafe<VCRecord[]>(
+        `SELECT * FROM "vcs" WHERE "accountId" = $1 ORDER BY "createdAt" DESC`,
+        filters.accountId,
       );
     }
     return (this.prisma as PrismaRaw).$queryRawUnsafe<VCRecord[]>(
@@ -281,6 +304,7 @@ type SqliteVcRow = {
   delegation_depth: number | null;
   max_delegation_depth: number | null;
   parent_vc_id: string | null;
+  account_id: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -308,6 +332,7 @@ function fromSqliteVcRow(row: SqliteVcRow | undefined): VCRecord | null {
     delegationDepth: row.delegation_depth,
     maxDelegationDepth: row.max_delegation_depth,
     parentVcId: row.parent_vc_id,
+    accountId: row.account_id,
   };
   if (row.created_at) base.createdAt = new Date(row.created_at);
   if (row.updated_at) base.updatedAt = new Date(row.updated_at);
@@ -337,7 +362,7 @@ export class SqliteVcStorageDriver implements VcStorageDriver {
         vc_id, subject_did, subject_type, vc_json, privilege_scopes,
         status_list_index, expires_at, revoked_at, renewed_by_vc_id,
         delegated_from, delegation_depth, max_delegation_depth, parent_vc_id,
-        created_at, updated_at
+        account_id, created_at, updated_at
       ) VALUES (
         ${sqliteLiteral(params.vcId)},
         ${sqliteLiteral(params.subjectDid)},
@@ -352,6 +377,7 @@ export class SqliteVcStorageDriver implements VcStorageDriver {
         ${sqliteLiteral(params.delegationDepth ?? null)},
         ${sqliteLiteral(params.maxDelegationDepth ?? null)},
         ${sqliteLiteral(params.parentVcId ?? null)},
+        ${sqliteLiteral(params.accountId ?? null)},
         ${sqliteLiteral(now)},
         ${sqliteLiteral(now)}
       )
@@ -372,6 +398,7 @@ export class SqliteVcStorageDriver implements VcStorageDriver {
     const now = new Date();
     const conditions: string[] = [];
     if (filters.subjectDid) conditions.push(`subject_did = ${sqliteLiteral(filters.subjectDid)}`);
+    if (filters.accountId) conditions.push(`account_id = ${sqliteLiteral(filters.accountId)}`);
     if (filters.status === 'revoked') {
       conditions.push('revoked_at IS NOT NULL');
     } else if (filters.status === 'expired') {
@@ -404,10 +431,14 @@ export class SqliteVcStorageDriver implements VcStorageDriver {
     return filterByType(records, vcType);
   }
 
-  async findMany(filters: { subjectDid?: string | undefined }): Promise<VCRecord[]> {
-    const where = filters.subjectDid
-      ? `WHERE subject_did = ${sqliteLiteral(filters.subjectDid)}`
-      : '';
+  async findMany(filters: {
+    subjectDid?: string | undefined;
+    accountId?: string | undefined;
+  }): Promise<VCRecord[]> {
+    const conditions: string[] = [];
+    if (filters.subjectDid) conditions.push(`subject_did = ${sqliteLiteral(filters.subjectDid)}`);
+    if (filters.accountId) conditions.push(`account_id = ${sqliteLiteral(filters.accountId)}`);
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const rows = this.sqlite.query<SqliteVcRow>(`
       SELECT * FROM vcs ${where} ORDER BY created_at DESC
     `);
@@ -508,6 +539,7 @@ export class InMemoryVcStorageDriver implements VcStorageDriver {
       delegationDepth: params.delegationDepth ?? null,
       maxDelegationDepth: params.maxDelegationDepth ?? null,
       parentVcId: params.parentVcId ?? null,
+      accountId: params.accountId ?? null,
       createdAt: now,
       updatedAt: now,
     };
@@ -530,6 +562,7 @@ export class InMemoryVcStorageDriver implements VcStorageDriver {
     const now = new Date();
     return [...this.vcs.values()]
       .filter((record) => (filters.subjectDid ? record.subjectDid === filters.subjectDid : true))
+      .filter((record) => (filters.accountId ? record.accountId === filters.accountId : true))
       .filter((record) => this.matchesStatus(record, filters.status, now))
       .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
       .slice(0, filters.limit);
@@ -543,9 +576,13 @@ export class InMemoryVcStorageDriver implements VcStorageDriver {
     return filterByType(records, vcType);
   }
 
-  async findMany(filters: { subjectDid?: string | undefined }): Promise<VCRecord[]> {
+  async findMany(filters: {
+    subjectDid?: string | undefined;
+    accountId?: string | undefined;
+  }): Promise<VCRecord[]> {
     return [...this.vcs.values()]
       .filter((r) => !filters.subjectDid || r.subjectDid === filters.subjectDid)
+      .filter((r) => !filters.accountId || r.accountId === filters.accountId)
       .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
   }
 

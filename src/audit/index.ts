@@ -49,6 +49,14 @@ export class ApiAuditLogger implements IAuditLogger {
           } as AuditEvent)
         : eventOrType;
     const payloadJson = JSON.stringify(event);
+    // Mirrors payload.accountId (when the caller included one -- see
+    // account-or-admin-guard.ts) as a real, indexed column instead of
+    // requiring every reader to scan payloadJson. Never required: most
+    // events have no attributable account at all.
+    const accountId =
+      typeof (event as Record<string, unknown>).accountId === 'string'
+        ? ((event as Record<string, unknown>).accountId as string)
+        : null;
 
     if (
       this.config.AUDIT_LOG_DESTINATION === 'stdout' ||
@@ -73,12 +81,13 @@ export class ApiAuditLogger implements IAuditLogger {
     if (this.sqlite) {
       try {
         this.sqlite.execute(`
-          INSERT INTO audit_log (timestamp, event_type, request_id, payload_json)
+          INSERT INTO audit_log (timestamp, event_type, request_id, payload_json, account_id)
           VALUES (
             ${sqliteLiteral(event.timestamp)},
             ${sqliteLiteral(event.event)},
             ${sqliteLiteral(event.requestId)},
-            ${sqliteLiteral(payloadJson)}
+            ${sqliteLiteral(payloadJson)},
+            ${sqliteLiteral(accountId)}
           )
         `);
       } catch (error) {
@@ -95,6 +104,7 @@ export class ApiAuditLogger implements IAuditLogger {
           eventType: event.event,
           requestId: event.requestId,
           payloadJson,
+          accountId,
         },
       });
     } catch (error) {

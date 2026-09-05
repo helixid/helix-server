@@ -10,6 +10,8 @@ export interface EnrollmentTokenRecord {
   requestedScopes: string;
   requestedDomains: string;
   maxDelegationDepth?: number;
+  /** Hosted account that minted this token via bearer auth; null for admin-key mints. */
+  accountId?: string | null;
   expiresAt: Date;
   usedAt: Date | null;
   createdAt: Date;

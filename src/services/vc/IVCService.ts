@@ -11,6 +11,8 @@ export interface IssueVCInput {
   delegationDepth?: number;
   maxDelegationDepth?: number;
   parentVcId?: string;
+  /** Hosted account that caused this VC to be issued; see account-or-admin-guard.ts. */
+  accountId?: string | undefined;
 }
 
 export interface IssueVCResult {

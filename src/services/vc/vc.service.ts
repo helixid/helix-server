@@ -88,12 +88,16 @@ export interface VCDetails {
   expiresAt: string;
   revokedAt: string | null;
   renewedByVcId: string | null;
+  /** Hosted account this VC was issued for; null for admin/self-hosted issuance. Used for route-level ownership checks, not returned to hosted-account callers. */
+  accountId?: string | null | undefined;
 }
 
 export interface ListVCFilters {
   subjectDid?: string | undefined;
   status?: string | undefined;
   limit?: number | undefined;
+  /** Scopes the list to VCs issued for this hosted account only (set for a bearer-token caller). */
+  accountId?: string | undefined;
 }
 
 export interface VCSummary {
@@ -342,6 +346,7 @@ export class VCService implements IVCService {
       delegationDepth: params.delegationDepth,
       maxDelegationDepth: params.maxDelegationDepth,
       parentVcId: params.parentVcId,
+      accountId: params.accountId,
     });
 
     // 7. Audit
@@ -367,7 +372,10 @@ export class VCService implements IVCService {
   }
 
   async listVCs(filters: ListVCFilters = {}): Promise<VCSummary[]> {
-    const records = await this.vcRepo.findMany({ subjectDid: filters.subjectDid });
+    const records = await this.vcRepo.findMany({
+      subjectDid: filters.subjectDid,
+      accountId: filters.accountId,
+    });
     const limit = filters.limit ?? 50;
     const now = Date.now();
 
@@ -424,6 +432,7 @@ export class VCService implements IVCService {
       expiresAt: record.expiresAt.toISOString(),
       revokedAt: record.revokedAt?.toISOString() || null,
       renewedByVcId: record.renewedByVcId,
+      accountId: record.accountId,
     };
   }
 

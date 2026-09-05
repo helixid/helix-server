@@ -296,6 +296,7 @@ await app.register(auditLogRoutes, {
   auditLogRepository,
   auditLogger,
   adminApiKey: config.HELIX_ADMIN_API_KEY,
+  accountOrAdminGuardDeps: { authService, accountRepository, auditLogRepository, adminApiKey: config.HELIX_ADMIN_API_KEY },
 });
 await app.register(agentRoutes, {
   prefix: '/v1',

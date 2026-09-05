@@ -15,12 +15,6 @@
 // Counts existing audit log rows for the account in a rolling 24h window;
 // no new logging infrastructure needed, since VC_ISSUED and
 // ENROLLMENT_TOKEN_GENERATED are already audited.
-//
-// NOTE: this only enforces anything once VC issuance and enrollment-token
-// routes are made account-aware (i.e. authenticated by a hosted-account
-// bearer token that carries accountId, and that accountId is recorded in
-// the audit payload for those events). That wiring doesn't exist yet — see
-// the call sites this is intentionally NOT yet wired into.
 
 import { AccountQuotaExceededError, AuditEvents, type AuditEventType } from '../../core/index.js';
 import type { AuditLogRepository } from '../../repositories/audit-log.repository.js';
@@ -36,19 +30,15 @@ export interface QuotaCheckOptions {
 
 /**
  * Throws AccountQuotaExceededError if the account has hit its daily limit
- * for the given event type. Fetches a generous window and filters/counts
- * by accountId in the payload — the audit log has no accountId column of
- * its own, so this is a scan rather than an indexed count. Fine at
- * current expected volumes (low thousands/day/account); revisit with a
- * dedicated counter table if the audit log grows large enough to make
- * this slow.
+ * for the given event type. Counts against the audit log's indexed
+ * accountId column directly.
  */
 export async function assertUnderDailyQuota(options: QuotaCheckOptions): Promise<void> {
   const { auditLogRepository, accountId, eventType, dailyLimit } = options;
   const since = new Date(Date.now() - ONE_DAY_MS);
 
-  const rows = await auditLogRepository.list({ eventType, since, limit: 100_000 });
-  const countForAccount = rows.filter((row) => row.payload.accountId === accountId).length;
+  const rows = await auditLogRepository.list({ eventType, since, limit: 100_000, accountId });
+  const countForAccount = rows.length;
 
   if (countForAccount >= dailyLimit) {
     throw new AccountQuotaExceededError(

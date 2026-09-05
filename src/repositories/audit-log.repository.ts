@@ -12,12 +12,15 @@ export interface AuditLogRecord {
   timestamp: Date;
   requestId: string | null;
   payload: Record<string, unknown>;
+  accountId?: string | null | undefined;
 }
 
 export interface ListAuditLogFilters {
   eventType?: string | undefined;
   since?: Date | undefined;
   limit: number;
+  /** Scopes results to rows tagged with this hosted account (set for a bearer-token caller). */
+  accountId?: string | undefined;
 }
 
 /**

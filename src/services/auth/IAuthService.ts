@@ -23,11 +23,16 @@ export interface AccountSummary {
   hasPassword: boolean;
   hasGoogle: boolean;
   emailVerified: boolean;
+  companyName: string | null;
+  fieldOfOperation: string | null;
 }
 
 export interface RegisterInput {
   email: string;
   password: string;
+  /** Both optional, collected for context only — never gate or scope anything. */
+  companyName?: string | undefined;
+  fieldOfOperation?: string | undefined;
 }
 
 export interface LoginInput {

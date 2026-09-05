@@ -27,6 +27,7 @@ type PrismaLike = PrismaClient & {
         timestamp: Date;
         requestId: string | null;
         payloadJson: string;
+        accountId: string | null;
       }>
     >;
   };
@@ -56,6 +57,7 @@ export class PrismaAuditLogStorageDriver implements AuditLogStorageDriver {
     const where: Record<string, unknown> = {};
     if (filters.eventType) where.eventType = filters.eventType;
     if (filters.since) where.timestamp = { gte: filters.since };
+    if (filters.accountId) where.accountId = filters.accountId;
     const rows = await this.db.auditLog.findMany({
       where,
       orderBy: { timestamp: 'desc' },
@@ -67,6 +69,7 @@ export class PrismaAuditLogStorageDriver implements AuditLogStorageDriver {
       timestamp: row.timestamp,
       requestId: row.requestId,
       payload: parsePayload(row.payloadJson),
+      accountId: row.accountId,
     }));
   }
 }
@@ -77,6 +80,7 @@ type SqliteAuditLogRow = {
   timestamp: string;
   request_id: string | null;
   payload_json: string;
+  account_id: string | null;
 };
 
 function fromSqliteRow(row: SqliteAuditLogRow): AuditLogRecord {
@@ -86,6 +90,7 @@ function fromSqliteRow(row: SqliteAuditLogRow): AuditLogRecord {
     timestamp: new Date(row.timestamp),
     requestId: row.request_id,
     payload: parsePayload(row.payload_json),
+    accountId: row.account_id,
   };
 }
 
@@ -96,6 +101,7 @@ export class SqliteAuditLogStorageDriver implements AuditLogStorageDriver {
     const conditions: string[] = [];
     if (filters.eventType) conditions.push(`event_type = ${sqliteLiteral(filters.eventType)}`);
     if (filters.since) conditions.push(`timestamp >= ${sqliteLiteral(filters.since.toISOString())}`);
+    if (filters.accountId) conditions.push(`account_id = ${sqliteLiteral(filters.accountId)}`);
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const rows = this.sqlite.query<SqliteAuditLogRow>(`
       SELECT * FROM audit_log

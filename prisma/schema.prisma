@@ -57,12 +57,19 @@ model Vc {
   delegationDepth  Int?
   maxDelegationDepth Int?
   parentVcId       String?
+  // Hosted account that caused this VC to be issued (directly via POST
+  // /v1/vcs, or by minting the enrollment token later redeemed to produce
+  // it). Null for admin-key/self-hosted issuance — see
+  // docs/proposal-hosted-instance.md. Lets a hosted account's Console
+  // session see only its own agents.
+  accountId        String?
   createdAt        DateTime  @default(now())
   did              Did       @relation(fields: [subjectDid], references: [id])
 
   @@index([subjectDid])
   @@index([vcId])
   @@index([parentVcId])
+  @@index([accountId])
   @@map("vcs")
 }
 
@@ -97,11 +104,18 @@ model EnrollmentToken {
   requestedScopes  String
   requestedDomains String
   maxDelegationDepth Int         @default(0)
+  // Hosted account that minted this token (via bearer auth on POST
+  // /v1/enrollment-tokens). Null for admin-key mints. The agent that later
+  // redeems the token (POST /v1/enroll, /v1/onboard/verify) never presents
+  // the account's own credentials — this is how the resulting Vc row gets
+  // attributed back to the right account.
+  accountId        String?
   expiresAt        DateTime
   usedAt           DateTime?
   createdAt        DateTime    @default(now())
   challenges       Challenge[]
 
+  @@index([accountId])
   @@map("enrollment_tokens")
 }
 
@@ -166,10 +180,15 @@ model AuditLog {
   eventType   String
   requestId   String
   payloadJson String
+  // Mirrors payloadJson.accountId (when present) as a real, indexed column
+  // instead of requiring an unindexed scan over the JSON blob — see
+  // src/services/auth/quota.ts, which previously had to do exactly that.
+  accountId   String?
   createdAt   DateTime @default(now())
 
   @@index([eventType])
   @@index([requestId])
+  @@index([accountId])
   @@map("audit_log")
 }
 
@@ -186,6 +205,10 @@ model Account {
   // Null until the account links (or is created via) Google sign-in.
   googleId     String?   @unique
   issuerDid    String?   @unique
+  // Both optional, collected at registration for context only -- neither
+  // gates or scopes anything.
+  companyName      String?
+  fieldOfOperation String?
   // Google accounts are verified by construction (emailVerified check at
   // link/create time); password accounts must click the emailed link.
   emailVerifiedAt            DateTime?

@@ -8,11 +8,17 @@ import {
 } from '../../core/index.js';
 import type { FastifyPluginAsync } from 'fastify';
 import type { AuditLogRepository } from '../../repositories/audit-log.repository.js';
+import {
+  resolveAccountOrAdmin,
+  type AccountOrAdminGuardDeps,
+} from '../../services/auth/account-or-admin-guard.js';
 
 interface AuditLogRouteOptions {
   auditLogRepository: AuditLogRepository;
   auditLogger: IAuditLogger;
   adminApiKey?: string | undefined;
+  /** Enables hosted-account bearer-token reads (in addition to the admin key) when provided. */
+  accountOrAdminGuardDeps?: AccountOrAdminGuardDeps | undefined;
 }
 
 interface ListAuditLogQuery {
@@ -345,12 +351,21 @@ const auditLogRoutes: FastifyPluginAsync<AuditLogRouteOptions> = async (fastify,
   });
 
   fastify.get('', async (request, reply) => {
-    requireAdmin(options.adminApiKey, request);
+    let accountId: string | undefined;
+    if (options.accountOrAdminGuardDeps) {
+      const result = await resolveAccountOrAdmin(request, options.accountOrAdminGuardDeps, {
+        requireAuth: true,
+      });
+      accountId = result.accountId;
+    } else {
+      requireAdmin(options.adminApiKey, request);
+    }
     const query = request.query as ListAuditLogQuery;
     const records = await options.auditLogRepository.list({
       eventType: query.eventType,
       since: normalizeSince(query.since),
       limit: normalizeLimit(query.limit),
+      accountId,
     });
 
     return reply.send(

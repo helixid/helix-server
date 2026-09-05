@@ -34,8 +34,16 @@ type PrismaWithAccount = PrismaClient & {
   };
 };
 
+export interface AccountCreateData {
+  email: string;
+  passwordHash: string | null;
+  googleId: string | null;
+  companyName?: string | null;
+  fieldOfOperation?: string | null;
+}
+
 export interface AccountStorageDriver {
-  create(data: { email: string; passwordHash: string | null; googleId: string | null }): Promise<AccountRecord>;
+  create(data: AccountCreateData): Promise<AccountRecord>;
   findById(id: string): Promise<AccountRecord | null>;
   findByEmail(email: string): Promise<AccountRecord | null>;
   findByGoogleId(googleId: string): Promise<AccountRecord | null>;
@@ -57,24 +65,22 @@ function hasRealRaw(prisma: PrismaClient): boolean {
 export class PrismaAccountStorageDriver implements AccountStorageDriver {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async create(data: {
-    email: string;
-    passwordHash: string | null;
-    googleId: string | null;
-  }): Promise<AccountRecord> {
+  async create(data: AccountCreateData): Promise<AccountRecord> {
     const id = makeId();
     const now = new Date();
 
     if (hasRealRaw(this.prisma)) {
       const rows = await (this.prisma as PrismaRaw).$queryRawUnsafe<AccountRecord[]>(
         `INSERT INTO "accounts" (
-          "id", "email", "passwordHash", "googleId", "issuerDid", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, $4, NULL, $5, $5)
+          "id", "email", "passwordHash", "googleId", "issuerDid", "companyName", "fieldOfOperation", "createdAt", "updatedAt"
+        ) VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $7)
         RETURNING *`,
         id,
         data.email,
         data.passwordHash,
         data.googleId,
+        data.companyName ?? null,
+        data.fieldOfOperation ?? null,
         now,
       );
       const row = rows[0];
@@ -88,6 +94,8 @@ export class PrismaAccountStorageDriver implements AccountStorageDriver {
         email: data.email,
         passwordHash: data.passwordHash,
         googleId: data.googleId,
+        companyName: data.companyName ?? null,
+        fieldOfOperation: data.fieldOfOperation ?? null,
       },
     })) as AccountRecord;
   }
@@ -176,6 +184,8 @@ type SqliteAccountRow = {
   password_hash: string | null;
   google_id: string | null;
   issuer_did: string | null;
+  company_name: string | null;
+  field_of_operation: string | null;
   email_verified_at: string | null;
   email_verification_token_hash: string | null;
   email_verification_expires_at: string | null;
@@ -191,6 +201,8 @@ function fromSqliteRow(row: SqliteAccountRow | undefined): AccountRecord | null 
     passwordHash: row.password_hash,
     googleId: row.google_id,
     issuerDid: row.issuer_did,
+    companyName: row.company_name,
+    fieldOfOperation: row.field_of_operation,
     emailVerifiedAt: row.email_verified_at ? new Date(row.email_verified_at) : null,
     emailVerificationTokenHash: row.email_verification_token_hash,
     emailVerificationExpiresAt: row.email_verification_expires_at
@@ -204,16 +216,12 @@ function fromSqliteRow(row: SqliteAccountRow | undefined): AccountRecord | null 
 export class SqliteAccountStorageDriver implements AccountStorageDriver {
   constructor(private readonly sqlite: SqliteStore) {}
 
-  async create(data: {
-    email: string;
-    passwordHash: string | null;
-    googleId: string | null;
-  }): Promise<AccountRecord> {
+  async create(data: AccountCreateData): Promise<AccountRecord> {
     const id = makeId();
     const now = new Date();
     this.sqlite.execute(`
       INSERT INTO accounts (
-        id, email, password_hash, google_id, issuer_did,
+        id, email, password_hash, google_id, issuer_did, company_name, field_of_operation,
         email_verified_at, email_verification_token_hash, email_verification_expires_at,
         created_at, updated_at
       )
@@ -222,7 +230,10 @@ export class SqliteAccountStorageDriver implements AccountStorageDriver {
         ${sqliteLiteral(data.email)},
         ${sqliteLiteral(data.passwordHash)},
         ${sqliteLiteral(data.googleId)},
-        NULL, NULL, NULL, NULL,
+        NULL,
+        ${sqliteLiteral(data.companyName ?? null)},
+        ${sqliteLiteral(data.fieldOfOperation ?? null)},
+        NULL, NULL, NULL,
         ${sqliteLiteral(now)},
         ${sqliteLiteral(now)}
       )
@@ -233,6 +244,8 @@ export class SqliteAccountStorageDriver implements AccountStorageDriver {
       passwordHash: data.passwordHash,
       googleId: data.googleId,
       issuerDid: null,
+      companyName: data.companyName ?? null,
+      fieldOfOperation: data.fieldOfOperation ?? null,
       emailVerifiedAt: null,
       emailVerificationTokenHash: null,
       emailVerificationExpiresAt: null,
@@ -299,11 +312,7 @@ export class SqliteAccountStorageDriver implements AccountStorageDriver {
 export class InMemoryAccountStorageDriver implements AccountStorageDriver {
   private readonly rows = new Map<string, AccountRecord>();
 
-  async create(data: {
-    email: string;
-    passwordHash: string | null;
-    googleId: string | null;
-  }): Promise<AccountRecord> {
+  async create(data: AccountCreateData): Promise<AccountRecord> {
     const id = makeId();
     const now = new Date();
     const record: AccountRecord = {
@@ -312,6 +321,8 @@ export class InMemoryAccountStorageDriver implements AccountStorageDriver {
       passwordHash: data.passwordHash,
       googleId: data.googleId,
       issuerDid: null,
+      companyName: data.companyName ?? null,
+      fieldOfOperation: data.fieldOfOperation ?? null,
       emailVerifiedAt: null,
       emailVerificationTokenHash: null,
       emailVerificationExpiresAt: null,
