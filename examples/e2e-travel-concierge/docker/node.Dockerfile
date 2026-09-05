@@ -4,12 +4,14 @@
 #
 # Build context: the parent directory containing all four split repos (see
 # docker-compose.yml's `context: ../../..`). This example's package.json
-# already points @helixid/sdk-js and @helixid/mcp at
-# "file:../../../helix-sdk-js/<pkg>" (the real on-disk sibling-repo layout),
-# so as long as we preserve that same relative structure inside the image,
-# no dependency rewriting is needed here (unlike e2e-consent-demo, which
-# still uses a git dependency on the currently-private helix-sdk-js repo —
-# see that example's node.Dockerfile for why).
+# already points @helixid/sdk-js and @helixid/mcp (the latter resolved from
+# helix-sdk-js's mcp-middleware package -- @helixid/mcp here is just this
+# consumer's own dependency key, unrelated to the target's own package name)
+# at "file:../../../helix-sdk-js/<pkg>" (the real on-disk sibling-repo
+# layout), so as long as we preserve that same relative structure inside the
+# image, no dependency rewriting is needed here (unlike e2e-consent-demo,
+# which still uses a git dependency on the currently-private helix-sdk-js
+# repo — see that example's node.Dockerfile for why).
 #
 #   docker build -f helix-server/examples/e2e-travel-concierge/docker/node.Dockerfile -t helixid-v2-node .
 FROM node:24.15.0-alpine
@@ -23,24 +25,24 @@ COPY helix-server/pnpm-workspace.yaml helix-server/package.json helix-server/pnp
 COPY helix-server/examples/e2e-travel-concierge helix-server/examples/e2e-travel-concierge
 
 # Vendored, pre-built sibling packages (built via `pnpm --filter @helixid/sdk-js
-# build` / `pnpm --filter @helixid/mcp build` in the helix-sdk-js repo). Only
-# dist/ + package.json are needed -- consumers resolve via "main"/"exports".
+# build` / `pnpm --filter @helixid/mcp-middleware build` in the helix-sdk-js
+# repo). Only dist/ + package.json are needed -- consumers resolve via
+# "main"/"exports".
 COPY helix-sdk-js/helix-sdk-js/dist helix-sdk-js/helix-sdk-js/dist
 COPY helix-sdk-js/helix-sdk-js/package.json helix-sdk-js/helix-sdk-js/package.json
-COPY helix-sdk-js/mcp/dist helix-sdk-js/mcp/dist
-COPY helix-sdk-js/mcp/package.json helix-sdk-js/mcp/package.json
+COPY helix-sdk-js/mcp-middleware/dist helix-sdk-js/mcp-middleware/dist
+COPY helix-sdk-js/mcp-middleware/package.json helix-sdk-js/mcp-middleware/package.json
 
 # Drop "scripts" (notably "prepare": "npm run build") from the vendored
 # package.jsons -- dist/ is already built, and there's no src/ or
 # devDependencies here for a rebuild to work against. Also repoint
-# @helixid/mcp's own "@helixid/sdk-js": "link:../helix-sdk-js" at an
-# absolute path: pnpm resolves that *nested* relative link one directory too
-# shallow when @helixid/mcp itself is installed via a relative `file:` spec
-# (real bug hit this session -- it landed on /repo/helix-sdk-js instead of
-# /repo/helix-sdk-js/helix-sdk-js, so mcp-server couldn't find sdk-js at
-# runtime: "Cannot find package '.../@helixid/sdk-js/index.js'").
-RUN node -e "for (const p of ['helix-sdk-js/helix-sdk-js', 'helix-sdk-js/mcp']) { const f = p + '/package.json'; const j = require('./' + f); delete j.scripts; require('fs').writeFileSync(f, JSON.stringify(j, null, 2)); }" \
- && npm pkg set "dependencies.@helixid/sdk-js=file:/repo/helix-sdk-js/helix-sdk-js" --prefix helix-sdk-js/mcp
+# @helixid/mcp-middleware's own "@helixid/sdk-js": "workspace:^" at an
+# absolute file: path: workspace:^ only resolves inside helix-sdk-js's own
+# pnpm workspace, which this vendored copy is not part of (real bug hit this
+# session -- a plain `pnpm install` here failed outright with
+# ERR_PNPM_WORKSPACE_PKG_NOT_FOUND on this exact package).
+RUN node -e "for (const p of ['helix-sdk-js/helix-sdk-js', 'helix-sdk-js/mcp-middleware']) { const f = p + '/package.json'; const j = require('./' + f); delete j.scripts; require('fs').writeFileSync(f, JSON.stringify(j, null, 2)); }" \
+ && npm pkg set "dependencies.@helixid/sdk-js=file:/repo/helix-sdk-js/helix-sdk-js" --prefix helix-sdk-js/mcp-middleware
 
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     --mount=type=cache,target=/root/.cache/node \

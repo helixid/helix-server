@@ -27,14 +27,16 @@ COPY helix-server/package.json helix-server/pnpm-lock.yaml helix-server/pnpm-wor
 # present for every matching directory or pnpm's workspace scan complains --
 # we don't need to build any of these for the api image, just satisfy it.
 # Only "name" is kept: the real files declare sibling-repo file:/git: deps
-# (e2e-consent-demo, e2e-travel-concierge) that pnpm would otherwise try to
-# resolve during its whole-workspace scan, even under --filter @helixid/api.
+# (e2e-consent-demo, e2e-travel-concierge, e2e-travel-concierge-hosted) that
+# pnpm would otherwise try to resolve during its whole-workspace scan, even
+# under --filter @helixid/api.
 COPY helix-server/e2e/package.json ./e2e/
 COPY helix-server/examples/package.json ./examples/
 COPY helix-server/examples/e2e-consent-demo/package.json ./examples/e2e-consent-demo/
 COPY helix-server/examples/e2e-travel-concierge/package.json ./examples/e2e-travel-concierge/
+COPY helix-server/examples/e2e-travel-concierge-hosted/package.json ./examples/e2e-travel-concierge-hosted/
 COPY helix-server/examples/framework-middleware/package.json ./examples/framework-middleware/
-RUN for f in e2e/package.json examples/package.json examples/e2e-consent-demo/package.json examples/e2e-travel-concierge/package.json examples/framework-middleware/package.json; do \
+RUN for f in e2e/package.json examples/package.json examples/e2e-consent-demo/package.json examples/e2e-travel-concierge/package.json examples/e2e-travel-concierge-hosted/package.json examples/framework-middleware/package.json; do \
       node -e "const j = require('./$f'); require('fs').writeFileSync('$f', JSON.stringify({ name: j.name, version: j.version, private: true }, null, 2));"; \
     done
 

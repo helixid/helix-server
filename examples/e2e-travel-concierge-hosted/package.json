@@ -1,0 +1,28 @@
+{
+  "name": "@helixid/example-e2e-travel-concierge-hosted",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "e2e-travel-concierge, but for the hosted/enterprise topology: no helix-api, no Console, and no Docker in this example at all -- just the customer-side agent + MCP server as plain local processes, talking to an already-running hosted HelixID API and registering agents purely through its Console.",
+  "scripts": {
+    "mcp": "tsx mcp-server/server.ts",
+    "agent": "tsx agent/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "@helixid/sdk-js": "file:../../../helix-sdk-js/helix-sdk-js",
+    "@helixid/mcp": "file:../../../helix-sdk-js/mcp-middleware",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.2",
+    "openai": "^4.77.0",
+    "tsx": "^4.0.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

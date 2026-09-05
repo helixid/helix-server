@@ -223,6 +223,46 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
+  examples/e2e-travel-concierge-hosted:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.68.0
+        version: 0.68.0(zod@3.25.76)
+      '@helixid/mcp':
+        specifier: file:../../../helix-sdk-js/mcp-middleware
+        version: '@helixid/mcp-middleware@file:../helix-sdk-js/mcp-middleware(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))'
+      '@helixid/sdk-js':
+        specifier: file:../../../helix-sdk-js/helix-sdk-js
+        version: file:../helix-sdk-js/helix-sdk-js
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.30.0(zod@3.25.76)
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      express:
+        specifier: ^4.21.2
+        version: 4.22.2
+      openai:
+        specifier: ^4.77.0
+        version: 4.104.0(ws@8.21.3)(zod@3.25.76)
+      tsx:
+        specifier: ^4.0.0
+        version: 4.23.13
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
   examples/e2e-travel-concierge-py: {}
 
   examples/framework-middleware:

@@ -63,18 +63,19 @@ jobs:
           node-version: '24.15.0'
           cache: 'pnpm'
 
-      # examples/e2e-travel-concierge depends on @helixid/sdk-js and
-      # @helixid/mcp via *local* file:../../../helix-sdk-js/... paths (a
-      # true sibling-repo checkout on a dev machine with all four split
-      # repos side by side) rather than the git+path specs the rest of the
-      # workspace uses -- this CI job only checks out helix-server, so that
-      # directory never exists here and a plain `pnpm install` fails with
-      # ENOENT trying to scandir it. Excluded from install entirely; it has
-      # no build/test:non-live script, so nothing later in this workflow
-      # needs it installed. (See its own package.json/docker-compose.yml
-      # for the real, sibling-checkout- or vendoring-based install paths.)
+      # examples/e2e-travel-concierge and examples/e2e-travel-concierge-hosted
+      # both depend on @helixid/sdk-js and @helixid/mcp via *local*
+      # file:../../../helix-sdk-js/... paths (a true sibling-repo checkout on
+      # a dev machine with all four split repos side by side) rather than
+      # the git+path specs the rest of the workspace uses -- this CI job
+      # only checks out helix-server, so that directory never exists here
+      # and a plain `pnpm install` fails with ENOENT trying to scandir it.
+      # Excluded from install entirely; neither has a build/test:non-live
+      # script, so nothing later in this workflow needs them installed.
+      # (See each one's own package.json/docker-compose.yml/README.md for
+      # the real, sibling-checkout- or vendoring-based install paths.)
       - name: Install dependencies
-        run: corepack enable && pnpm install --frozen-lockfile --filter '!@helixid/example-e2e-travel-concierge'
+        run: corepack enable && pnpm install --frozen-lockfile --filter '!@helixid/example-e2e-travel-concierge' --filter '!@helixid/example-e2e-travel-concierge-hosted'
 
       - name: Build
         run: pnpm run workspace:build
