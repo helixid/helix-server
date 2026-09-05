@@ -1,0 +1,30 @@
+{
+  "name": "@helixid/example-e2e-consent-demo-hosted",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "e2e-consent-demo, but for the hosted/enterprise topology: no helix-api, no Console, and no Docker in this example at all -- the two SPs provision their own did:web identities locally, and the agent is enrolled purely by pasting a token from the hosted Console.",
+  "scripts": {
+    "bootstrap-sps": "tsx bootstrap-sps.ts",
+    "onboard-agent": "tsx onboard-agent.ts",
+    "sp:airline": "tsx sp-airline/server.ts",
+    "sp:hotel": "tsx sp-hotel/server.ts",
+    "agent": "tsx agent/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "@google/genai": "^2.15.0",
+    "@helixid/sdk-js": "github:helixid/helix-sdk-js#path:helix-sdk-js",
+    "@helixid/widget": "github:helixid/helix-sdk-js#path:widget",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.2",
+    "openai": "^4.77.0",
+    "tsx": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

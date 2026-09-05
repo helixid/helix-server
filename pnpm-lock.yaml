@@ -181,6 +181,43 @@ importers:
         specifier: ^4.1.8
         version: 4.1.11(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(vite@8.2.2(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
 
+  examples/e2e-consent-demo-hosted:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.68.0
+        version: 0.68.0(zod@3.25.76)
+      '@google/genai':
+        specifier: ^2.15.0
+        version: 2.21.0(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))
+      '@helixid/sdk-js':
+        specifier: github:helixid/helix-sdk-js#path:helix-sdk-js
+        version: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06#path:helix-sdk-js
+      '@helixid/widget':
+        specifier: github:helixid/helix-sdk-js#path:widget
+        version: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06#path:widget
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      express:
+        specifier: ^4.21.2
+        version: 4.22.2
+      openai:
+        specifier: ^4.77.0
+        version: 4.104.0(ws@8.21.3)(zod@3.25.76)
+      tsx:
+        specifier: ^4.0.0
+        version: 4.23.13
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
   examples/e2e-consent-demo-py: {}
 
   examples/e2e-travel-concierge:
@@ -770,9 +807,17 @@ packages:
   '@helixid/sdk-js@file:../helix-sdk-js/helix-sdk-js':
     resolution: {directory: ../helix-sdk-js/helix-sdk-js, type: directory}
 
+  '@helixid/sdk-js@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06#path:helix-sdk-js':
+    resolution: {path: helix-sdk-js, tarball: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06}
+    version: 0.1.7
+
   '@helixid/sdk-js@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:helix-sdk-js':
     resolution: {path: helix-sdk-js, tarball: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0}
     version: 0.1.7
+
+  '@helixid/widget@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06#path:widget':
+    resolution: {path: widget, tarball: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06}
+    version: 0.1.0
 
   '@helixid/widget@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:widget':
     resolution: {path: widget, tarball: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0}
@@ -4610,11 +4655,19 @@ snapshots:
       '@noble/hashes': 1.8.0
       zod: 3.25.76
 
+  '@helixid/sdk-js@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06#path:helix-sdk-js':
+    dependencies:
+      '@noble/ed25519': 2.3.0
+      '@noble/hashes': 1.8.0
+      zod: 3.25.76
+
   '@helixid/sdk-js@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:helix-sdk-js':
     dependencies:
       '@noble/ed25519': 2.3.0
       '@noble/hashes': 1.8.0
       zod: 3.25.76
+
+  '@helixid/widget@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/d91e2370f6dafcf5306886c2c20b20828acb5d06#path:widget': {}
 
   '@helixid/widget@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:widget': {}
 
