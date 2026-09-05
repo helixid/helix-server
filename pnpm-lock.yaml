@@ -7,6 +7,7 @@ settings:
 overrides:
   fast-uri: 3.1.2
   protobufjs: 8.0.2
+  '@helixid/mcp-middleware>@helixid/sdk-js': file:../helix-sdk-js/helix-sdk-js
 
 importers:
 
@@ -4547,7 +4548,7 @@ snapshots:
 
   '@helixid/mcp-middleware@file:../helix-sdk-js/mcp-middleware(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))':
     dependencies:
-      '@helixid/sdk-js': link:../helix-sdk-js
+      '@helixid/sdk-js': file:../helix-sdk-js/helix-sdk-js
     optionalDependencies:
       '@modelcontextprotocol/sdk': 1.30.0(zod@3.25.76)
 
