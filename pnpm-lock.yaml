@@ -7,9 +7,6 @@ settings:
 overrides:
   fast-uri: 3.1.2
   protobufjs: 8.0.2
-  '@helixid/sdk-js': file:../helix-sdk-js/helix-sdk-js
-  '@helixid/did-hedera': file:../helix-sdk-js/did-hedera
-  '@helixid/widget': file:../helix-sdk-js/widget
 
 importers:
 
@@ -28,8 +25,8 @@ importers:
         specifier: ^5.2.6
         version: 5.2.6
       '@helixid/did-hedera':
-        specifier: file:../helix-sdk-js/did-hedera
-        version: file:../helix-sdk-js/did-hedera(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
+        specifier: github:helixid/helix-sdk-js#path:did-hedera
+        version: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:did-hedera(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
       '@noble/curves':
         specifier: ^1.4.0
         version: 1.9.7
@@ -74,8 +71,8 @@ importers:
         version: 3.25.76
     devDependencies:
       '@helixid/sdk-js':
-        specifier: file:../helix-sdk-js/helix-sdk-js
-        version: file:../helix-sdk-js/helix-sdk-js
+        specifier: github:helixid/helix-sdk-js#path:helix-sdk-js
+        version: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:helix-sdk-js
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13
@@ -125,8 +122,8 @@ importers:
   e2e:
     devDependencies:
       '@helixid/sdk-js':
-        specifier: file:../../helix-sdk-js/helix-sdk-js
-        version: file:../helix-sdk-js/helix-sdk-js
+        specifier: github:helixid/helix-sdk-js#path:helix-sdk-js
+        version: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:helix-sdk-js
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
@@ -140,8 +137,8 @@ importers:
   examples:
     dependencies:
       '@helixid/sdk-js':
-        specifier: file:../../helix-sdk-js/helix-sdk-js
-        version: file:../helix-sdk-js/helix-sdk-js
+        specifier: github:helixid/helix-sdk-js#path:helix-sdk-js
+        version: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:helix-sdk-js
 
   examples/e2e-consent-demo:
     dependencies:
@@ -152,11 +149,11 @@ importers:
         specifier: ^2.15.0
         version: 2.21.0(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))
       '@helixid/sdk-js':
-        specifier: file:../../../helix-sdk-js/helix-sdk-js
-        version: file:../helix-sdk-js/helix-sdk-js
+        specifier: github:helixid/helix-sdk-js#path:helix-sdk-js
+        version: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:helix-sdk-js
       '@helixid/widget':
-        specifier: file:../../../helix-sdk-js/widget
-        version: file:../helix-sdk-js/widget
+        specifier: github:helixid/helix-sdk-js#path:widget
+        version: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:widget
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -236,8 +233,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.2(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))
       '@helixid/sdk-js':
-        specifier: file:../../../helix-sdk-js/helix-sdk-js
-        version: file:../helix-sdk-js/helix-sdk-js
+        specifier: ^0.1.1
+        version: 0.1.7
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -698,8 +695,9 @@ packages:
   '@helixid/core@0.1.5':
     resolution: {integrity: sha512-mdqBzfe1katc0BbcWU0jKTWkSWxvizryknFQiiPEnSYI+xsbCa5SLLIAH0CUgdIH0C1EITnqCpzE1KfX/mcLvQ==}
 
-  '@helixid/did-hedera@file:../helix-sdk-js/did-hedera':
-    resolution: {directory: ../helix-sdk-js/did-hedera, type: directory}
+  '@helixid/did-hedera@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:did-hedera':
+    resolution: {path: did-hedera, tarball: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0}
+    version: 0.1.2
 
   '@helixid/langchain@0.1.1':
     resolution: {integrity: sha512-kiyTjYvGCw2wETZj+fNqri7yKmMWXS2+mquNV2few7pIoXjUNrYFMl0oGKwNrsWEmXZFSTuPWKRtDbaZig8YFw==}
@@ -725,11 +723,19 @@ packages:
       '@modelcontextprotocol/sdk':
         optional: true
 
+  '@helixid/sdk-js@0.1.7':
+    resolution: {integrity: sha512-n3Qv8i33rlL5fOkR8AvB7Tlcep0/yTBGwhCjVpMNkCEeB0W/IYy2p/NZQvk5wRZb1L12cBLx1J3JJkfzsRogaA==}
+
   '@helixid/sdk-js@file:../helix-sdk-js/helix-sdk-js':
     resolution: {directory: ../helix-sdk-js/helix-sdk-js, type: directory}
 
-  '@helixid/widget@file:../helix-sdk-js/widget':
-    resolution: {directory: ../helix-sdk-js/widget, type: directory}
+  '@helixid/sdk-js@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:helix-sdk-js':
+    resolution: {path: helix-sdk-js, tarball: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0}
+    version: 0.1.7
+
+  '@helixid/widget@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:widget':
+    resolution: {path: widget, tarball: https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0}
+    version: 0.1.0
 
   '@hiero-did-sdk/cache@0.1.8':
     resolution: {integrity: sha512-HGC4ckyzK6ollXzwliEcyy9398srz2eSmBbYBFQawc/D3wCqK1Dd2jHhhQoutsUp8s/7+EhpB4urZ3CSOHFjBA==}
@@ -4449,7 +4455,7 @@ snapshots:
   '@grpc/proto-loader@0.7.15':
     dependencies:
       lodash.camelcase: 4.3.0
-      long: 5.3.1
+      long: 5.3.2
       protobufjs: 8.0.2
       yargs: 17.7.3
 
@@ -4519,7 +4525,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       zod: 3.25.76
 
-  '@helixid/did-hedera@file:../helix-sdk-js/did-hedera(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))':
+  '@helixid/did-hedera@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:did-hedera(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))':
     dependencies:
       '@hashgraph/sdk': 2.81.0(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
       '@hiero-did-sdk/hcs': 0.1.8(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
@@ -4537,20 +4543,25 @@ snapshots:
   '@helixid/langchain@0.1.1':
     dependencies:
       '@helixid/core': 0.1.5
-      '@helixid/sdk-js': file:../helix-sdk-js/helix-sdk-js
+      '@helixid/sdk-js': 0.1.7
 
   '@helixid/mcp-middleware@file:../helix-sdk-js/mcp-middleware(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))':
     dependencies:
-      '@helixid/sdk-js': file:../helix-sdk-js/helix-sdk-js
+      '@helixid/sdk-js': link:../helix-sdk-js
     optionalDependencies:
       '@modelcontextprotocol/sdk': 1.30.0(zod@3.25.76)
 
   '@helixid/mcp@0.1.2(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))':
     dependencies:
       '@helixid/core': 0.1.5
-      '@helixid/sdk-js': file:../helix-sdk-js/helix-sdk-js
+      '@helixid/sdk-js': 0.1.7
     optionalDependencies:
       '@modelcontextprotocol/sdk': 1.30.0(zod@3.25.76)
+
+  '@helixid/sdk-js@0.1.7':
+    dependencies:
+      '@helixid/core': 0.1.5
+      '@noble/ed25519': 2.3.0
 
   '@helixid/sdk-js@file:../helix-sdk-js/helix-sdk-js':
     dependencies:
@@ -4558,7 +4569,13 @@ snapshots:
       '@noble/hashes': 1.8.0
       zod: 3.25.76
 
-  '@helixid/widget@file:../helix-sdk-js/widget': {}
+  '@helixid/sdk-js@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:helix-sdk-js':
+    dependencies:
+      '@noble/ed25519': 2.3.0
+      '@noble/hashes': 1.8.0
+      zod: 3.25.76
+
+  '@helixid/widget@https://codeload.github.com/helixid/helix-sdk-js/tar.gz/f2180df2b771f361a199b220f167786517d1e0d0#path:widget': {}
 
   '@hiero-did-sdk/cache@0.1.8(bn.js@5.2.5)(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))':
     dependencies:
